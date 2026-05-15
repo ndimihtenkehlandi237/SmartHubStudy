@@ -22,33 +22,33 @@ function Quiz() {
   const [timeLeft, setTimeLeft] = useState(null);
 
   useEffect(() => {
-    if (noteId) generateQuiz();
-    else {
-      toast.error('No note selected for quiz');
-      navigate('/notes');
-    }
-  }, [noteId]);
+  if (noteId) {
+    generateQuiz();
+  } else {
+    toast.error('No note selected for quiz');
+    navigate('/notes');
+  }
+}, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => {
-    if (quiz && timeLeft === null) {
-      setTimeLeft(quiz.questions.length * 60);
-    }
-  }, [quiz]);
+useEffect(() => {
+  if (quiz && timeLeft === null) {
+    setTimeLeft(quiz.questions.length * 60);
+  }
+}, [quiz]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => {
-    if (timeLeft === null || timeLeft <= 0 || result) return;
-    const timer = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          handleSubmit();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [timeLeft, result]);
+useEffect(() => {
+  if (timeLeft === null || timeLeft <= 0 || result) return;
+  const timer = setInterval(() => {
+    setTimeLeft(prev => {
+      if (prev <= 1) {
+        clearInterval(timer);
+        return 0;
+      }
+      return prev - 1;
+    });
+  }, 1000);
+  return () => clearInterval(timer);
+}, [timeLeft]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const formatTime = (seconds) => {
     const m = Math.floor(seconds / 60).toString().padStart(2, '0');

@@ -47,10 +47,10 @@ function Profile() {
     }
     setSaving(true);
     try {
-      const res = await axios.put('/api/auth/profile',
-        { fullName: editData.fullName, university: editData.university, language },
-        { headers: { Authorization: `Bearer ${getToken()}` } }
-      );
+        await axios.put('/api/user/profile', 
+          {fullName: editData.fullName, university: editData.university, language},
+          { headers: { Authorization: `Bearer ${getToken()}` } }
+        );
       const updatedUser = { ...user, ...editData, language };
       localStorage.setItem('user', JSON.stringify(updatedUser));
       setUser(updatedUser);

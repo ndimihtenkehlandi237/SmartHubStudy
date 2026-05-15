@@ -30,7 +30,7 @@ function Dashboard() {
       setUser(userData);
       fetchDashboardData();
     }
-  }, []);
+  }, [navigate]);
 
   const fetchDashboardData = async () => {
     try {

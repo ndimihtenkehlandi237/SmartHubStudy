@@ -87,7 +87,7 @@ function Upload() {
       data.append('subjectId', formData.subjectId);
       data.append('courseLevel', formData.courseLevel);
 
-      const res = await axios.post('/api/notes/upload', data, {
+       await axios.post('/api/notes/upload', data, {
         headers: {
           Authorization: `Bearer ${getToken()}`,
           'Content-Type': 'multipart/form-data'
