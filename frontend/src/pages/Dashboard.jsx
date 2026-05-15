@@ -6,7 +6,7 @@ import {
   FaStar, FaTrophy, FaClock, FaSpinner
 } from 'react-icons/fa';
 import { getUser, logout, getToken } from '../services/authService';
-import axios from 'axios';
+import API from '../services/api';
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -38,9 +38,9 @@ function Dashboard() {
       const headers = { Authorization: `Bearer ${token}` };
 
       const [subjectsRes, notesRes, quizStatsRes] = await Promise.all([
-        axios.get('/api/notes/subjects', { headers }),
-        axios.get('/api/notes', { headers }),
-        axios.get('/api/quiz/results/stats', { headers }),
+        API.get('/api/notes/subjects', { headers }),
+        API.get('/api/notes', { headers }),
+        API.get('/api/quiz/results/stats', { headers }),
       ]);
 
       setSubjects(subjectsRes.data.subjects);
@@ -86,11 +86,7 @@ function Dashboard() {
 
   return (
     <div className="flex min-h-screen bg-gray-100">
-
-      {/* SIDEBAR */}
       <div className="w-64 bg-primary min-h-screen flex flex-col shadow-2xl fixed left-0 top-0 bottom-0 z-10">
-
-        {/* Logo */}
         <div className="p-6 border-b border-blue-700">
           <div className="flex items-center gap-3">
             <div className="bg-white w-10 h-10 rounded-xl flex items-center justify-center">
@@ -103,7 +99,6 @@ function Dashboard() {
           </div>
         </div>
 
-        {/* User Info */}
         <div className="p-4 border-b border-blue-700">
           <div className="flex items-center gap-3">
             <div className="bg-accent w-10 h-10 rounded-full flex items-center justify-center">
@@ -120,15 +115,11 @@ function Dashboard() {
           </div>
         </div>
 
-        {/* Menu */}
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {menuItems.map(item => (
             <button
               key={item.id}
-              onClick={() => {
-                setActiveMenu(item.id);
-                navigate(item.path);
-              }}
+              onClick={() => { setActiveMenu(item.id); navigate(item.path); }}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition duration-200 text-sm font-medium ${
                 activeMenu === item.id
                   ? 'bg-white text-primary shadow-lg'
@@ -141,7 +132,6 @@ function Dashboard() {
           ))}
         </nav>
 
-        {/* Logout */}
         <div className="p-4 border-t border-blue-700">
           <button
             onClick={handleLogout}
@@ -153,10 +143,7 @@ function Dashboard() {
         </div>
       </div>
 
-      {/* MAIN CONTENT */}
       <div className="flex-1 flex flex-col ml-64">
-
-        {/* Top Bar */}
         <div className="bg-white shadow-sm px-8 py-4 flex items-center justify-between sticky top-0 z-10">
           <div>
             <h2 className="text-xl font-bold text-gray-800">Dashboard</h2>
@@ -175,16 +162,13 @@ function Dashboard() {
           </div>
         </div>
 
-        {/* Content */}
         <div className="flex-1 p-8 space-y-6">
-
           {loading ? (
             <div className="flex items-center justify-center py-20">
               <FaSpinner className="animate-spin text-primary text-4xl" />
             </div>
           ) : (
             <>
-              {/* Motivational Banner */}
               <div className="bg-gradient-to-r from-primary to-secondary rounded-2xl p-6 text-white shadow-lg">
                 <div className="flex items-center justify-between">
                   <div>
@@ -199,7 +183,6 @@ function Dashboard() {
                 </div>
               </div>
 
-              {/* Stats Cards */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {statCards.map((stat, i) => (
                   <div
@@ -216,10 +199,7 @@ function Dashboard() {
                 ))}
               </div>
 
-              {/* Two Columns */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-                {/* My Subjects */}
                 <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
                   <div className="flex items-center justify-between mb-5">
                     <h3 className="font-bold text-gray-800 text-lg">My Subjects</h3>
@@ -230,7 +210,6 @@ function Dashboard() {
                       + Add Notes
                     </button>
                   </div>
-
                   {subjects.length === 0 ? (
                     <div className="text-center py-8 text-gray-400">
                       <FaBookOpen className="text-3xl mx-auto mb-2 opacity-30" />
@@ -261,44 +240,28 @@ function Dashboard() {
                   )}
                 </div>
 
-                {/* Quick Actions */}
                 <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
                   <h3 className="font-bold text-gray-800 text-lg mb-5">Quick Actions</h3>
                   <div className="grid grid-cols-2 gap-3">
-                    <button
-                      onClick={() => navigate('/upload')}
-                      className="flex flex-col items-center gap-2 p-4 bg-blue-50 hover:bg-blue-100 rounded-xl transition group"
-                    >
+                    <button onClick={() => navigate('/upload')} className="flex flex-col items-center gap-2 p-4 bg-blue-50 hover:bg-blue-100 rounded-xl transition group">
                       <div className="bg-blue-500 w-10 h-10 rounded-xl flex items-center justify-center group-hover:scale-110 transition">
                         <FaUpload className="text-white" />
                       </div>
                       <span className="text-xs font-medium text-gray-700">Upload Notes</span>
                     </button>
-
-                    <button
-                      onClick={() => navigate('/notes')}
-                      className="flex flex-col items-center gap-2 p-4 bg-green-50 hover:bg-green-100 rounded-xl transition group"
-                    >
+                    <button onClick={() => navigate('/notes')} className="flex flex-col items-center gap-2 p-4 bg-green-50 hover:bg-green-100 rounded-xl transition group">
                       <div className="bg-green-500 w-10 h-10 rounded-xl flex items-center justify-center group-hover:scale-110 transition">
                         <FaQuestionCircle className="text-white" />
                       </div>
                       <span className="text-xs font-medium text-gray-700">Take Quiz</span>
                     </button>
-
-                    <button
-                      onClick={() => navigate('/exam-countdown')}
-                      className="flex flex-col items-center gap-2 p-4 bg-purple-50 hover:bg-purple-100 rounded-xl transition group"
-                    >
+                    <button onClick={() => navigate('/exam-countdown')} className="flex flex-col items-center gap-2 p-4 bg-purple-50 hover:bg-purple-100 rounded-xl transition group">
                       <div className="bg-purple-500 w-10 h-10 rounded-xl flex items-center justify-center group-hover:scale-110 transition">
                         <FaClock className="text-white" />
                       </div>
                       <span className="text-xs font-medium text-gray-700">Exam Countdown</span>
                     </button>
-
-                    <button
-                      onClick={() => navigate('/results')}
-                      className="flex flex-col items-center gap-2 p-4 bg-orange-50 hover:bg-orange-100 rounded-xl transition group"
-                    >
+                    <button onClick={() => navigate('/results')} className="flex flex-col items-center gap-2 p-4 bg-orange-50 hover:bg-orange-100 rounded-xl transition group">
                       <div className="bg-orange-500 w-10 h-10 rounded-xl flex items-center justify-center group-hover:scale-110 transition">
                         <FaTrophy className="text-white" />
                       </div>
@@ -308,18 +271,13 @@ function Dashboard() {
                 </div>
               </div>
 
-              {/* Recent Notes */}
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-bold text-gray-800 text-lg">Recent Notes</h3>
-                  <button
-                    onClick={() => navigate('/notes')}
-                    className="text-xs text-secondary hover:underline font-medium"
-                  >
+                  <button onClick={() => navigate('/notes')} className="text-xs text-secondary hover:underline font-medium">
                     View All →
                   </button>
                 </div>
-
                 {recentNotes.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-8 text-gray-400">
                     <FaClock className="text-4xl mb-3 opacity-30" />
@@ -333,7 +291,7 @@ function Dashboard() {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {recentNotes.map((note, i) => (
+                    {recentNotes.map((note) => (
                       <div
                         key={note._id}
                         onClick={() => navigate('/notes')}
@@ -346,16 +304,12 @@ function Dashboard() {
                           <div>
                             <p className="font-medium text-gray-700 text-sm">{note.title}</p>
                             <p className="text-xs text-gray-400">
-                              {note.subjectId?.name || 'Unknown'} •{' '}
-                              {new Date(note.createdAt).toLocaleDateString()}
+                              {note.subjectId?.name || 'Unknown'} • {new Date(note.createdAt).toLocaleDateString()}
                             </p>
                           </div>
                         </div>
                         <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/quiz?noteId=${note._id}`);
-                          }}
+                          onClick={(e) => { e.stopPropagation(); navigate(`/quiz?noteId=${note._id}`); }}
                           className="text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full hover:bg-green-200 transition font-medium"
                         >
                           Quiz →

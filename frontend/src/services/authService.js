@@ -1,4 +1,4 @@
-import axios from 'axios';
+import API from './api';
 
 const saveToken = (token) => localStorage.setItem('token', token);
 const saveUser = (user) => localStorage.setItem('user', JSON.stringify(user));
@@ -15,7 +15,7 @@ export const logout = () => {
 };
 
 export const registerUser = async (formData) => {
-  const response = await axios.post('/api/auth/register', {
+  const response = await API.post('/api/auth/register', {
     fullName: formData.fullName,
     email: formData.email,
     password: formData.password,
@@ -27,7 +27,7 @@ export const registerUser = async (formData) => {
 };
 
 export const loginUser = async (email, password) => {
-  const response = await axios.post('/api/auth/login', { email, password });
+  const response = await API.post('/api/auth/login', { email, password });
   saveToken(response.data.token);
   saveUser(response.data.user);
   return response.data;

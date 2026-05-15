@@ -11,7 +11,14 @@ const examRoutes = require('./routes/examRoutes');
 
 const app = express();
 
-app.use(cors());
+app.use(cors({
+  origin: [
+    'http://localhost:3000',
+    'https://smart-hub-study.vercel.app',
+  ],
+  credentials: true,
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev'));
@@ -23,14 +30,6 @@ app.use('/api/exams', examRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: 'Smart Hub Study API is running!' });
-});
-
-app.get('/test-env', (req, res) => {
-  res.json({
-    hasOpenAI: !!process.env.OPENAI_API_KEY,
-    openAIStart: process.env.OPENAI_API_KEY?.slice(0, 7),
-    hasAnthropic: !!process.env.ANTHROPIC_API_KEY,
-  });
 });
 
 const PORT = process.env.PORT || 5000;

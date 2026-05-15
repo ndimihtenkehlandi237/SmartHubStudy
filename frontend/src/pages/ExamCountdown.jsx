@@ -6,7 +6,7 @@ import {
   FaSpinner, FaGraduationCap, FaBell
 } from 'react-icons/fa';
 import { getToken } from '../services/authService';
-import axios from 'axios';
+import API from '../services/api';
 
 function ExamCountdown() {
   const navigate = useNavigate();
@@ -33,8 +33,8 @@ function ExamCountdown() {
     try {
       const headers = { Authorization: `Bearer ${getToken()}` };
       const [examsRes, subjectsRes] = await Promise.all([
-        axios.get('/api/exams', { headers }),
-        axios.get('/api/notes/subjects', { headers }),
+        API.get('/api/exams', { headers }),
+        API.get('/api/notes/subjects', { headers }),
       ]);
       setExams(examsRes.data.exams);
       setSubjects(subjectsRes.data.subjects);
@@ -63,20 +63,11 @@ function ExamCountdown() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.examName || !formData.examDate) {
-      toast.error('Please fill in all required fields');
-      return;
-    }
-    if (new Date(formData.examDate) <= new Date()) {
-      toast.error('Exam date must be in the future');
-      return;
-    }
+    if (!formData.examName || !formData.examDate) { toast.error('Please fill in all required fields'); return; }
+    if (new Date(formData.examDate) <= new Date()) { toast.error('Exam date must be in the future'); return; }
     setSaving(true);
     try {
-      const res = await axios.post('/api/exams',
-        formData,
-        { headers: { Authorization: `Bearer ${getToken()}` } }
-      );
+      const res = await API.post('/api/exams', formData, { headers: { Authorization: `Bearer ${getToken()}` } });
       setExams([...exams, res.data.exam]);
       setFormData({ examName: '', subjectId: '', examDate: '', notifyEnabled: true });
       setShowForm(false);
@@ -90,9 +81,7 @@ function ExamCountdown() {
   const deleteExam = async (id) => {
     if (!window.confirm('Delete this exam countdown?')) return;
     try {
-      await axios.delete(`/api/exams/${id}`, {
-        headers: { Authorization: `Bearer ${getToken()}` }
-      });
+      await API.delete(`/api/exams/${id}`, { headers: { Authorization: `Bearer ${getToken()}` } });
       setExams(exams.filter(e => e._id !== id));
       toast.success('Exam deleted');
     } catch (error) {
@@ -101,17 +90,11 @@ function ExamCountdown() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <FaSpinner className="animate-spin text-primary text-4xl" />
-      </div>
-    );
+    return <div className="min-h-screen bg-gray-100 flex items-center justify-center"><FaSpinner className="animate-spin text-primary text-4xl" /></div>;
   }
 
   return (
     <div className="min-h-screen bg-gray-100">
-
-      {/* Header */}
       <div className="bg-white shadow-sm px-8 py-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <button onClick={() => navigate('/dashboard')} className="text-gray-500 hover:text-primary transition">
@@ -122,26 +105,18 @@ function ExamCountdown() {
             <p className="text-gray-500 text-sm">Track your upcoming examinations</p>
           </div>
         </div>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="bg-primary text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-secondary transition flex items-center gap-2"
-        >
+        <button onClick={() => setShowForm(!showForm)} className="bg-primary text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-secondary transition flex items-center gap-2">
           <FaPlus /> Add Exam
         </button>
       </div>
 
       <div className="max-w-4xl mx-auto p-8 space-y-6">
-
-        {/* Add Exam Form */}
         {showForm && (
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
             <h3 className="font-bold text-gray-800 text-lg mb-4">Add New Exam</h3>
             <form onSubmit={handleSubmit} className="space-y-4">
-
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Exam Name *
-                </label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Exam Name *</label>
                 <input
                   type="text"
                   value={formData.examName}
@@ -151,28 +126,20 @@ function ExamCountdown() {
                   className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-secondary text-gray-700 transition"
                 />
               </div>
-
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Subject (Optional)
-                  </label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Subject (Optional)</label>
                   <select
                     value={formData.subjectId}
                     onChange={(e) => setFormData({ ...formData, subjectId: e.target.value })}
                     className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-secondary text-gray-700 transition"
                   >
                     <option value="">Select subject</option>
-                    {subjects.map(sub => (
-                      <option key={sub._id} value={sub._id}>{sub.name}</option>
-                    ))}
+                    {subjects.map(sub => <option key={sub._id} value={sub._id}>{sub.name}</option>)}
                   </select>
                 </div>
-
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Exam Date & Time *
-                  </label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Exam Date & Time *</label>
                   <input
                     type="datetime-local"
                     value={formData.examDate}
@@ -182,7 +149,6 @@ function ExamCountdown() {
                   />
                 </div>
               </div>
-
               <div className="flex items-center gap-3">
                 <input
                   type="checkbox"
@@ -191,43 +157,25 @@ function ExamCountdown() {
                   onChange={(e) => setFormData({ ...formData, notifyEnabled: e.target.checked })}
                   className="w-4 h-4 accent-primary"
                 />
-                <label htmlFor="notify" className="text-sm text-gray-700 font-medium">
-                  Enable study reminders for this exam
-                </label>
+                <label htmlFor="notify" className="text-sm text-gray-700 font-medium">Enable study reminders for this exam</label>
               </div>
-
               <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowForm(false)}
-                  className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3 rounded-xl transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="flex-1 bg-primary hover:bg-secondary text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-2"
-                >
+                <button type="button" onClick={() => setShowForm(false)} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3 rounded-xl transition">Cancel</button>
+                <button type="submit" disabled={saving} className="flex-1 bg-primary hover:bg-secondary text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-2">
                   {saving ? <FaSpinner className="animate-spin" /> : <FaPlus />}
                   {saving ? 'Adding...' : 'Add Exam'}
                 </button>
               </div>
-
             </form>
           </div>
         )}
 
-        {/* Exams List */}
         {exams.length === 0 ? (
           <div className="bg-white rounded-2xl p-12 shadow-sm text-center">
             <FaGraduationCap className="text-6xl text-gray-200 mx-auto mb-4" />
             <h3 className="text-xl font-bold text-gray-600 mb-2">No Exams Added Yet</h3>
             <p className="text-gray-400 mb-6">Add your upcoming exams to track countdown timers</p>
-            <button
-              onClick={() => setShowForm(true)}
-              className="bg-primary text-white px-6 py-3 rounded-xl font-medium hover:bg-secondary transition"
-            >
+            <button onClick={() => setShowForm(true)} className="bg-primary text-white px-6 py-3 rounded-xl font-medium hover:bg-secondary transition">
               + Add Your First Exam
             </button>
           </div>
@@ -237,33 +185,21 @@ function ExamCountdown() {
               const timeLeft = getTimeLeft(exam.examDate);
               return (
                 <div key={exam._id} className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100">
-
-                  {/* Exam Header */}
                   <div className={`bg-gradient-to-r ${getUrgencyColor(timeLeft.days)} p-5 text-white`}>
                     <div className="flex items-center justify-between">
                       <div>
                         <h3 className="text-xl font-bold">{exam.examName}</h3>
-                        <p className="text-white text-opacity-80 text-sm mt-1 flex items-center gap-2">
+                        <p className="text-white text-sm mt-1 flex items-center gap-2">
                           <FaGraduationCap />
-                          {exam.subjectId?.name || 'General Exam'} •{' '}
-                          {new Date(exam.examDate).toLocaleDateString('en-GB', {
-                            weekday: 'long',
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric',
-                          })}
+                          {exam.subjectId?.name || 'General Exam'} • {new Date(exam.examDate).toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                         </p>
                       </div>
-                      <button
-                        onClick={() => deleteExam(exam._id)}
-                        className="text-white text-opacity-70 hover:text-opacity-100 transition p-2"
-                      >
+                      <button onClick={() => deleteExam(exam._id)} className="text-white opacity-70 hover:opacity-100 transition p-2">
                         <FaTrash />
                       </button>
                     </div>
                   </div>
 
-                  {/* Countdown Timer */}
                   <div className="p-5">
                     {timeLeft.expired ? (
                       <div className="text-center py-4">
@@ -279,15 +215,11 @@ function ExamCountdown() {
                             { value: timeLeft.seconds, label: 'Seconds' },
                           ].map((item) => (
                             <div key={item.label} className="bg-gray-50 rounded-xl p-3 text-center border border-gray-100">
-                              <p className="text-3xl font-bold text-primary">
-                                {String(item.value).padStart(2, '0')}
-                              </p>
+                              <p className="text-3xl font-bold text-primary">{String(item.value).padStart(2, '0')}</p>
                               <p className="text-xs text-gray-500 mt-1 font-medium">{item.label}</p>
                             </div>
                           ))}
                         </div>
-
-                        {/* Urgency Message */}
                         <div className={`text-center text-sm font-semibold py-2 px-4 rounded-xl ${
                           timeLeft.days <= 3 ? 'bg-red-50 text-red-600' :
                           timeLeft.days <= 7 ? 'bg-orange-50 text-orange-600' :
@@ -299,7 +231,6 @@ function ExamCountdown() {
                            timeLeft.days <= 14 ? '📚 Two weeks remaining. Stay consistent!' :
                            '✅ Good amount of time. Study steadily every day!'}
                         </div>
-
                         {exam.notifyEnabled && (
                           <div className="flex items-center gap-2 mt-3 text-xs text-gray-400">
                             <FaBell className="text-primary" />
