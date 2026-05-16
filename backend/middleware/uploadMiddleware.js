@@ -1,5 +1,4 @@
 const multer = require('multer');
-const path = require('path');
 
 const storage = multer.memoryStorage();
 
@@ -23,7 +22,7 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({
   storage,
   fileFilter,
-  limits: { fileSize: 50 * 1024 * 1024 },
+  limits: { fileSize: 10 * 1024 * 1024 },
 });
 
 module.exports = upload;
