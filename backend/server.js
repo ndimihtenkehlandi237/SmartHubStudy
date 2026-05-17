@@ -8,6 +8,9 @@ const authRoutes = require('./routes/authRoutes');
 const noteRoutes = require('./routes/noteRoutes');
 const quizRoutes = require('./routes/quizRoutes');
 const examRoutes = require('./routes/examRoutes');
+const aiRoutes = require('./routes/aiRoutes');
+const studyGroupRoutes = require('./routes/studyGroupRoutes');
+const paymentRoutes = require('./routes/paymentRoutes');
 
 const app = express();
 
@@ -36,6 +39,9 @@ app.use('/api/auth', authRoutes);
 app.use('/api/notes', noteRoutes);
 app.use('/api/quiz', quizRoutes);
 app.use('/api/exams', examRoutes);
+app.use('/api/ai', aiRoutes);
+app.use('/api/groups', studyGroupRoutes);
+app.use('/api/payment', paymentRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: 'Smart Hub Study API is running!' });

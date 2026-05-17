@@ -10,6 +10,9 @@ import Quiz from './pages/Quiz';
 import Results from './pages/Results';
 import Profile from './pages/Profile';
 import ExamCountdown from './pages/ExamCountdown';
+import MathSolver from './pages/MathSolver';
+import Payment from './pages/Payment';
+import StudyGroups from './pages/StudyGroups';
 
 function App() {
   return (
@@ -25,6 +28,9 @@ function App() {
         <Route path="/results" element={<Results />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/exam-countdown" element={<ExamCountdown />} />
+        <Route path="/math-solver" element={<MathSolver />} />
+        <Route path="/payment" element={<Payment />} />
+        <Route path="/study-groups" element={<StudyGroups />} />
       </Routes>
     </Router>
   );

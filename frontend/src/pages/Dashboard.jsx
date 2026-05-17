@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import {
   FaBookOpen, FaUpload, FaStickyNote, FaQuestionCircle,
   FaChartBar, FaUser, FaBell, FaSignOutAlt, FaFire,
-  FaStar, FaTrophy, FaClock, FaSpinner
+  FaStar, FaTrophy, FaClock, FaSpinner, FaCalculator,
+  FaUsers, FaCreditCard
 } from 'react-icons/fa';
 import { getUser, logout, getToken } from '../services/authService';
 import API from '../services/api';
@@ -62,16 +63,18 @@ function Dashboard() {
     navigate('/');
   };
 
-  const menuItems = [
-    { id: 'dashboard', icon: <FaChartBar />, label: 'Dashboard', path: '/dashboard' },
-    { id: 'upload', icon: <FaUpload />, label: 'Upload Notes', path: '/upload' },
-    { id: 'notes', icon: <FaStickyNote />, label: 'My Notes', path: '/notes' },
-    { id: 'quiz', icon: <FaQuestionCircle />, label: 'Take Quiz', path: '/quiz' },
-    { id: 'results', icon: <FaTrophy />, label: 'My Results', path: '/results' },
-    { id: 'exam-countdown', icon: <FaClock />, label: 'Exam Countdown', path: '/exam-countdown' },
-    { id: 'profile', icon: <FaUser />, label: 'Profile', path: '/profile' },
-  ];
-
+ const menuItems = [
+  { id: 'dashboard', icon: <FaChartBar />, label: 'Dashboard', path: '/dashboard' },
+  { id: 'upload', icon: <FaUpload />, label: 'Upload Notes', path: '/upload' },
+  { id: 'notes', icon: <FaStickyNote />, label: 'My Notes', path: '/notes' },
+  { id: 'quiz', icon: <FaQuestionCircle />, label: 'Take Quiz', path: '/notes' },
+  { id: 'results', icon: <FaTrophy />, label: 'My Results', path: '/results' },
+  { id: 'math-solver', icon: <FaCalculator />, label: 'Math Solver', path: '/math-solver' },
+  { id: 'study-groups', icon: <FaUsers />, label: 'Study Groups', path: '/study-groups' },
+  { id: 'exam-countdown', icon: <FaClock />, label: 'Exam Countdown', path: '/exam-countdown' },
+  { id: 'payment', icon: <FaCreditCard />, label: 'Upgrade to Pro', path: '/payment' },
+  { id: 'profile', icon: <FaUser />, label: 'Profile', path: '/profile' },
+];
   const statCards = [
     { label: 'Notes Uploaded', value: stats.totalNotes, icon: <FaStickyNote />, color: 'bg-blue-500', onClick: () => navigate('/notes') },
     { label: 'Quizzes Taken', value: stats.totalQuizzes, icon: <FaQuestionCircle />, color: 'bg-green-500', onClick: () => navigate('/results') },
@@ -86,11 +89,14 @@ function Dashboard() {
 
   return (
     <div className="flex min-h-screen bg-gray-100">
-      <div className="w-64 bg-primary min-h-screen flex flex-col shadow-2xl fixed left-0 top-0 bottom-0 z-10">
-        <div className="p-6 border-b border-blue-700">
+
+      {/* SIDEBAR — Hidden on mobile */}
+      <div className="hidden md:flex w-64 bg-primary min-h-screen flex-col shadow-2xl fixed left-0 top-0 bottom-0 z-10">
+
+        <div className="p-4 border-b border-blue-700">
           <div className="flex items-center gap-3">
-            <div className="bg-white w-10 h-10 rounded-xl flex items-center justify-center">
-              <FaBookOpen className="text-primary text-lg" />
+            <div className="bg-white w-9 h-9 rounded-xl flex items-center justify-center">
+              <FaBookOpen className="text-primary text-base" />
             </div>
             <div>
               <h1 className="text-white font-bold text-sm">Smart Hub Study</h1>
@@ -99,13 +105,13 @@ function Dashboard() {
           </div>
         </div>
 
-        <div className="p-4 border-b border-blue-700">
+        <div className="p-3 border-b border-blue-700">
           <div className="flex items-center gap-3">
-            <div className="bg-accent w-10 h-10 rounded-full flex items-center justify-center">
-              <FaUser className="text-white" />
+            <div className="bg-accent w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0">
+              <FaUser className="text-white text-sm" />
             </div>
-            <div>
-              <p className="text-white font-semibold text-sm">
+            <div className="min-w-0">
+              <p className="text-white font-semibold text-sm truncate">
                 {user?.fullName?.split(' ')[0] || 'Student'}!
               </p>
               <p className="text-blue-300 text-xs capitalize">
@@ -115,91 +121,132 @@ function Dashboard() {
           </div>
         </div>
 
-        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+        <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
           {menuItems.map(item => (
             <button
               key={item.id}
               onClick={() => { setActiveMenu(item.id); navigate(item.path); }}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition duration-200 text-sm font-medium ${
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition duration-200 text-sm font-medium ${
                 activeMenu === item.id
                   ? 'bg-white text-primary shadow-lg'
                   : 'text-blue-200 hover:bg-blue-700 hover:text-white'
               }`}
             >
-              <span className="text-base">{item.icon}</span>
-              {item.label}
+              <span className="text-sm flex-shrink-0">{item.icon}</span>
+              <span className="truncate">{item.label}</span>
             </button>
           ))}
         </nav>
 
-        <div className="p-4 border-t border-blue-700">
+        <div className="p-3 border-t border-blue-700">
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-blue-200 hover:bg-red-600 hover:text-white transition duration-200 text-sm font-medium"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-blue-200 hover:bg-red-600 hover:text-white transition duration-200 text-sm font-medium"
           >
-            <FaSignOutAlt />
+            <FaSignOutAlt className="flex-shrink-0" />
             Sign Out
           </button>
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col ml-64">
-        <div className="bg-white shadow-sm px-8 py-4 flex items-center justify-between sticky top-0 z-10">
+      {/* MAIN CONTENT */}
+      <div className="flex-1 flex flex-col md:ml-64">
+
+        {/* Top Bar */}
+        <div className="bg-white shadow-sm px-4 md:px-8 py-3 flex items-center justify-between sticky top-0 z-10">
           <div>
-            <h2 className="text-xl font-bold text-gray-800">Dashboard</h2>
-            <p className="text-gray-500 text-sm">
-              Welcome back, {user?.fullName?.split(' ')[0] || 'Student'}! Ready to study?
+            <h2 className="text-lg font-bold text-gray-800">Dashboard</h2>
+            <p className="text-gray-500 text-xs">
+              Welcome, {user?.fullName?.split(' ')[0] || 'Student'}! 👋
             </p>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
             <button className="relative p-2 text-gray-500 hover:text-primary transition">
-              <FaBell className="text-xl" />
+              <FaBell className="text-lg" />
               <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
             </button>
-            <div className="bg-accent w-10 h-10 rounded-full flex items-center justify-center">
-              <FaUser className="text-white" />
-            </div>
+            <button
+              onClick={handleLogout}
+              className="md:hidden p-2 text-gray-500 hover:text-red-500 transition"
+            >
+              <FaSignOutAlt className="text-lg" />
+            </button>
           </div>
         </div>
 
-        <div className="flex-1 p-8 space-y-6">
+        {/* Content */}
+        <div className="flex-1 p-4 md:p-8 space-y-4 md:space-y-6">
           {loading ? (
             <div className="flex items-center justify-center py-20">
               <FaSpinner className="animate-spin text-primary text-4xl" />
             </div>
           ) : (
             <>
-              <div className="bg-gradient-to-r from-primary to-secondary rounded-2xl p-6 text-white shadow-lg">
+              {/* Motivational Banner */}
+              <div className="bg-gradient-to-r from-primary to-secondary rounded-2xl p-4 md:p-6 text-white shadow-lg">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-xl font-bold mb-1">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-base md:text-xl font-bold mb-1">
                       🎓 Keep Pushing, {user?.fullName?.split(' ')[0] || 'Student'}!
                     </h3>
-                    <p className="text-blue-100 text-sm">
+                    <p className="text-blue-100 text-xs md:text-sm">
                       "Success is the sum of small efforts repeated day in and day out."
                     </p>
                   </div>
-                  <FaStar className="text-yellow-300 text-5xl opacity-50" />
+                  <FaStar className="text-yellow-300 text-3xl md:text-5xl opacity-50 flex-shrink-0 ml-2" />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Stats Cards */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
                 {statCards.map((stat, i) => (
                   <div
                     key={i}
                     onClick={stat.onClick}
-                    className={`bg-white rounded-2xl p-5 shadow-sm border border-gray-100 ${stat.onClick ? 'cursor-pointer hover:shadow-md transition' : ''}`}
+                    className={`bg-white rounded-2xl p-4 shadow-sm border border-gray-100 ${stat.onClick ? 'cursor-pointer hover:shadow-md transition' : ''}`}
                   >
-                    <div className={`${stat.color} w-10 h-10 rounded-xl flex items-center justify-center text-white mb-3`}>
+                    <div className={`${stat.color} w-9 h-9 rounded-xl flex items-center justify-center text-white mb-2`}>
                       {stat.icon}
                     </div>
-                    <p className="text-2xl font-bold text-gray-800">{stat.value}</p>
-                    <p className="text-gray-500 text-xs mt-1">{stat.label}</p>
+                    <p className="text-xl md:text-2xl font-bold text-gray-800">{stat.value}</p>
+                    <p className="text-gray-500 text-xs mt-0.5">{stat.label}</p>
                   </div>
                 ))}
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Mobile Quick Actions */}
+              <div className="md:hidden bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                <h3 className="font-bold text-gray-800 mb-3">Quick Actions</h3>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { label: 'Upload', icon: <FaUpload />, path: '/upload', color: 'bg-blue-500' },
+                    { label: 'Quiz', icon: <FaQuestionCircle />, path: '/notes', color: 'bg-green-500' },
+                    { label: 'Results', icon: <FaTrophy />, path: '/results', color: 'bg-orange-500' },
+                    { label: 'Math', icon: <FaCalculator />, path: '/math-solver', color: 'bg-purple-500' },
+                    { label: 'Groups', icon: <FaUsers />, path: '/study-groups', color: 'bg-pink-500' },
+                    { label: 'Countdown', icon: <FaClock />, path: '/exam-countdown', color: 'bg-red-500' },
+                    { label: 'Notes', icon: <FaStickyNote />, path: '/notes', color: 'bg-yellow-500' },
+                    { label: 'Profile', icon: <FaUser />, path: '/profile', color: 'bg-gray-500' },
+                    { label: 'Upgrade', icon: <FaCreditCard />, path: '/payment', color: 'bg-primary' },
+                  ].map((action, i) => (
+                    <button
+                      key={i}
+                      onClick={() => navigate(action.path)}
+                      className="flex flex-col items-center gap-1 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition"
+                    >
+                      <div className={`${action.color} w-9 h-9 rounded-xl flex items-center justify-center`}>
+                        <span className="text-white text-sm">{action.icon}</span>
+                      </div>
+                      <span className="text-xs text-gray-600 font-medium">{action.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Desktop Two Columns */}
+              <div className="hidden md:grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+                {/* Subjects */}
                 <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
                   <div className="flex items-center justify-between mb-5">
                     <h3 className="font-bold text-gray-800 text-lg">My Subjects</h3>
@@ -214,10 +261,7 @@ function Dashboard() {
                     <div className="text-center py-8 text-gray-400">
                       <FaBookOpen className="text-3xl mx-auto mb-2 opacity-30" />
                       <p className="text-sm">No subjects yet.</p>
-                      <button
-                        onClick={() => navigate('/upload')}
-                        className="mt-3 text-xs bg-primary text-white px-4 py-2 rounded-lg hover:bg-secondary transition"
-                      >
+                      <button onClick={() => navigate('/upload')} className="mt-3 text-xs bg-primary text-white px-4 py-2 rounded-lg hover:bg-secondary transition">
                         Upload First Note
                       </button>
                     </div>
@@ -240,6 +284,7 @@ function Dashboard() {
                   )}
                 </div>
 
+                {/* Quick Actions Desktop */}
                 <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
                   <h3 className="font-bold text-gray-800 text-lg mb-5">Quick Actions</h3>
                   <div className="grid grid-cols-2 gap-3">
@@ -271,9 +316,10 @@ function Dashboard() {
                 </div>
               </div>
 
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+              {/* Recent Notes */}
+              <div className="bg-white rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-bold text-gray-800 text-lg">Recent Notes</h3>
+                  <h3 className="font-bold text-gray-800 text-base md:text-lg">Recent Notes</h3>
                   <button onClick={() => navigate('/notes')} className="text-xs text-secondary hover:underline font-medium">
                     View All →
                   </button>
@@ -281,36 +327,33 @@ function Dashboard() {
                 {recentNotes.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-8 text-gray-400">
                     <FaClock className="text-4xl mb-3 opacity-30" />
-                    <p className="text-sm">No notes yet. Upload your first note to get started!</p>
-                    <button
-                      onClick={() => navigate('/upload')}
-                      className="mt-4 bg-primary text-white px-6 py-2 rounded-xl text-sm font-medium hover:bg-secondary transition"
-                    >
+                    <p className="text-sm">No notes yet. Upload your first note!</p>
+                    <button onClick={() => navigate('/upload')} className="mt-4 bg-primary text-white px-6 py-2 rounded-xl text-sm font-medium hover:bg-secondary transition">
                       Upload Notes Now
                     </button>
                   </div>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     {recentNotes.map((note) => (
                       <div
                         key={note._id}
                         onClick={() => navigate('/notes')}
                         className="flex items-center justify-between p-3 rounded-xl bg-gray-50 hover:bg-gray-100 cursor-pointer transition"
                       >
-                        <div className="flex items-center gap-3">
-                          <div className="bg-primary w-8 h-8 rounded-lg flex items-center justify-center">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="bg-primary w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0">
                             <FaStickyNote className="text-white text-xs" />
                           </div>
-                          <div>
-                            <p className="font-medium text-gray-700 text-sm">{note.title}</p>
-                            <p className="text-xs text-gray-400">
+                          <div className="min-w-0">
+                            <p className="font-medium text-gray-700 text-sm truncate">{note.title}</p>
+                            <p className="text-xs text-gray-400 truncate">
                               {note.subjectId?.name || 'Unknown'} • {new Date(note.createdAt).toLocaleDateString()}
                             </p>
                           </div>
                         </div>
                         <button
                           onClick={(e) => { e.stopPropagation(); navigate(`/quiz?noteId=${note._id}`); }}
-                          className="text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full hover:bg-green-200 transition font-medium"
+                          className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full hover:bg-green-200 transition font-medium flex-shrink-0 ml-2"
                         >
                           Quiz →
                         </button>
@@ -319,6 +362,7 @@ function Dashboard() {
                   </div>
                 )}
               </div>
+
             </>
           )}
         </div>
