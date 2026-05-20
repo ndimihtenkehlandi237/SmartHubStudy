@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { FaEnvelope, FaLock, FaBookOpen, FaEye, FaEyeSlash } from 'react-icons/fa';
+import {
+  FaEnvelope, FaLock, FaBookOpen, FaEye, FaEyeSlash
+} from 'react-icons/fa';
 import { useTranslation } from 'react-i18next';
-import { loginUser } from '../services/authService';
+import { loginUser, isLoggedIn } from '../services/authService';
 
 function Login() {
   const { t } = useTranslation();
@@ -12,6 +14,13 @@ function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  // Auto redirect if already logged in
+  useEffect(() => {
+    if (isLoggedIn()) {
+      navigate('/dashboard');
+    }
+  }, [navigate]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -37,7 +46,7 @@ function Login() {
             <FaBookOpen className="text-primary text-4xl" />
           </div>
           <h1 className="text-3xl md:text-4xl font-bold text-white">Smart Hub Study</h1>
-          <p className="text-blue-100 mt-2 text-sm md:text-base">Your AI-Powered Study Companion</p>
+          <p className="text-blue-100 mt-2 text-sm">Your AI-Powered Study Companion 🇨🇲</p>
         </div>
 
         {/* Card */}
@@ -47,7 +56,6 @@ function Login() {
 
           <form onSubmit={handleLogin} className="space-y-5">
 
-            {/* Email */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 {t('emailAddress')}
@@ -65,7 +73,6 @@ function Login() {
               </div>
             </div>
 
-            {/* Password */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 {t('password')}
@@ -90,14 +97,12 @@ function Login() {
               </div>
             </div>
 
-            {/* Forgot Password */}
             <div className="text-right">
               <button type="button" className="text-sm text-secondary hover:underline font-medium">
                 {t('forgotPassword')}
               </button>
             </div>
 
-            {/* Submit */}
             <button
               type="submit"
               disabled={loading}
@@ -108,14 +113,12 @@ function Login() {
 
           </form>
 
-          {/* Divider */}
           <div className="flex items-center my-6">
-            <div className="flex-1 border-t-2 border-gray-100"></div>
+            <div className="flex-1 border-t-2 border-gray-100" />
             <span className="px-4 text-gray-400 text-sm font-medium">or</span>
-            <div className="flex-1 border-t-2 border-gray-100"></div>
+            <div className="flex-1 border-t-2 border-gray-100" />
           </div>
 
-          {/* Register Link */}
           <p className="text-center text-gray-600 text-sm">
             {t('noAccount')}{' '}
             <Link to="/register" className="text-secondary font-bold hover:underline">

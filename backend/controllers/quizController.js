@@ -3,90 +3,87 @@ const Result = require('../models/Result');
 const Note = require('../models/Note');
 const User = require('../models/User');
 
-// ── GENERATE 50+ QUESTIONS ──
-const generateQuestions = async (text, noteTitle) => {
+// ── GENERATE QUESTIONS ──
+const generateQuestions = async (text, noteTitle, isPro) => {
 
-  // Try OpenAI first
-  if (process.env.OPENAI_API_KEY &&
-    process.env.OPENAI_API_KEY !== 'your_openai_key_here') {
+  // Free plan — always use placeholders with 5 questions only
+  if (!isPro) {
+    return generatePlaceholders(noteTitle, 5);
+  }
+
+  // Pro plan — try OpenAI first
+  if (
+    process.env.OPENAI_API_KEY &&
+    process.env.OPENAI_API_KEY !== 'your_openai_key_here'
+  ) {
     try {
       const OpenAI = require('openai');
       const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
       const response = await client.chat.completions.create({
-        model: 'gpt-3.5-turbo-16k',
+        model: 'gpt-4o-mini',
         max_tokens: 8000,
         messages: [
           {
             role: 'system',
-            content: `You are an expert academic tutor and examiner creating 
-            comprehensive exam questions for university students in Cameroon. 
-            Generate questions that test deep understanding not memorization. 
-            Ask the same concept in different ways to detect cramming.`
+            content: `You are an expert academic tutor creating exam questions
+            for university students in Cameroon. Generate questions that test
+            deep understanding not memorization.`,
           },
           {
             role: 'user',
-            content: `Based on these student notes titled "${noteTitle}", 
+            content: `Based on these student notes titled "${noteTitle}",
 generate exactly 50 exam questions:
-
 - 25 Multiple Choice Questions (MCQ) with 4 options each
-- 15 Essay questions requiring detailed written responses
+- 15 Essay questions requiring detailed responses
 - 10 Structural questions requiring step by step answers
 
-Rules:
-- All questions must come strictly from the note content
-- MCQ options must be plausible and not obvious
-- Essay questions must require critical thinking
-- Structural questions must require step by step reasoning
-- Vary difficulty: 20% easy, 50% medium, 30% hard
-- Ask same concepts differently to test true understanding
-
-Return ONLY a valid JSON array with exactly 50 items. No extra text:
+Return ONLY a valid JSON array with exactly 50 items:
 [
   {
-    "question": "question text here",
+    "question": "question text",
     "type": "mcq",
     "options": ["Option A", "Option B", "Option C", "Option D"],
     "correctAnswer": "Option A",
     "marks": 2
   },
   {
-    "question": "essay question here",
+    "question": "essay question",
     "type": "essay",
     "options": [],
-    "correctAnswer": "detailed expected answer here",
+    "correctAnswer": "expected answer",
     "marks": 5
   },
   {
-    "question": "structural question here",
+    "question": "structural question",
     "type": "structural",
     "options": [],
-    "correctAnswer": "step by step expected answer here",
+    "correctAnswer": "step by step answer",
     "marks": 8
   }
 ]
 
-Student Notes Title: ${noteTitle}
-Student Notes Content:
-${text.slice(0, 12000)}`
-          }
-        ]
+Notes Title: ${noteTitle}
+Notes Content: ${text.slice(0, 12000)}`,
+          },
+        ],
       });
 
       const content = response.choices[0].message.content;
       const cleaned = content.replace(/```json|```/g, '').trim();
       const questions = JSON.parse(cleaned);
-      console.log(`Generated ${questions.length} questions successfully!`);
+      console.log(`OpenAI generated ${questions.length} questions`);
       return questions;
-
     } catch (error) {
       console.error('OpenAI quiz error:', error.message);
     }
   }
 
-  // Try Claude as fallback
-  if (process.env.ANTHROPIC_API_KEY &&
-    process.env.ANTHROPIC_API_KEY !== 'your_claude_api_key_here') {
+  // Pro plan — try Claude as fallback
+  if (
+    process.env.ANTHROPIC_API_KEY &&
+    process.env.ANTHROPIC_API_KEY !== 'your_claude_api_key_here'
+  ) {
     try {
       const Anthropic = require('@anthropic-ai/sdk');
       const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -94,245 +91,202 @@ ${text.slice(0, 12000)}`
       const message = await client.messages.create({
         model: 'claude-sonnet-4-6',
         max_tokens: 8000,
-        messages: [{
-          role: 'user',
-          content: `Based on these student notes titled "${noteTitle}", 
-generate exactly 50 exam questions:
-- 25 MCQ with 4 options each
-- 15 Essay questions
-- 10 Structural questions
-
-Return ONLY a valid JSON array with 50 items:
-[
-  {
-    "question": "question text",
-    "type": "mcq",
-    "options": ["A", "B", "C", "D"],
-    "correctAnswer": "A",
-    "marks": 2
-  }
-]
-
-Notes Title: ${noteTitle}
-Notes Content: ${text.slice(0, 12000)}`
-        }]
+        messages: [
+          {
+            role: 'user',
+            content: `Generate 50 exam questions from notes titled "${noteTitle}".
+25 MCQ, 15 Essay, 10 Structural.
+Return ONLY a JSON array.
+Notes: ${text.slice(0, 12000)}`,
+          },
+        ],
       });
 
       const content = message.content[0].text;
       const cleaned = content.replace(/```json|```/g, '').trim();
       const questions = JSON.parse(cleaned);
-      console.log(`Generated ${questions.length} questions via Claude!`);
+      console.log(`Claude generated ${questions.length} questions`);
       return questions;
-
     } catch (error) {
       console.error('Claude quiz error:', error.message);
     }
   }
 
-  // ── PLACEHOLDER 50 QUESTIONS (no API key) ──
-  console.log('No API key found. Using placeholder questions.');
-  const placeholders = [];
+  // Pro plan but no API key — use 50 placeholders
+  return generatePlaceholders(noteTitle, 50);
+};
+
+// ── PLACEHOLDER QUESTIONS GENERATOR ──
+const generatePlaceholders = (noteTitle, count) => {
+  const all = [];
 
   const mcqData = [
     {
-      q: `What is the main topic discussed in "${noteTitle}"?`,
-      opts: ['A detailed academic study', 'A personal diary entry', 'A fiction story', 'A recipe book'],
-      ans: 'A detailed academic study'
-    },
-    {
-      q: `Which best describes the purpose of "${noteTitle}"?`,
-      opts: ['To inform and educate', 'To entertain readers', 'To advertise a product', 'To tell a story'],
-      ans: 'To inform and educate'
+      q: `What is the main topic of "${noteTitle}"?`,
+      opts: ['A detailed academic study', 'A personal diary', 'A fiction story', 'A recipe book'],
+      ans: 'A detailed academic study',
     },
     {
       q: 'Which study method produces the best long-term retention?',
       opts: ['Active recall through testing', 'Passive re-reading', 'Last minute cramming', 'Highlighting only'],
-      ans: 'Active recall through testing'
+      ans: 'Active recall through testing',
     },
     {
       q: 'Understanding a concept deeply is better than memorizing it.',
       opts: ['Strongly Agree', 'Disagree', 'Neutral', 'Strongly Disagree'],
-      ans: 'Strongly Agree'
+      ans: 'Strongly Agree',
     },
     {
-      q: `How should a student approach studying "${noteTitle}"?`,
-      opts: ['Read and understand key concepts', 'Memorize word for word', 'Skip difficult sections', 'Read only once quickly'],
-      ans: 'Read and understand key concepts'
-    },
-    {
-      q: 'What is the recommended frequency for reviewing study notes?',
-      opts: ['Regularly with spaced repetition', 'Only the night before exams', 'Once after class only', 'Never — just listen in class'],
-      ans: 'Regularly with spaced repetition'
-    },
-    {
-      q: 'Which of the following is NOT an effective study technique?',
-      opts: ['Cramming the night before', 'Practice testing yourself', 'Summarizing in your own words', 'Teaching others the material'],
-      ans: 'Cramming the night before'
-    },
-    {
-      q: `What format is the note "${noteTitle}" uploaded in?`,
-      opts: ['Digital academic note', 'Personal letter', 'News article', 'Social media post'],
-      ans: 'Digital academic note'
-    },
-    {
-      q: 'Which cognitive skill is most important for academic success?',
-      opts: ['Critical thinking and analysis', 'Memorization only', 'Speed reading', 'Copying notes verbatim'],
-      ans: 'Critical thinking and analysis'
-    },
-    {
-      q: 'What does the Smart Hub Study platform help students do?',
+      q: 'What does Smart Hub Study help students do?',
       opts: ['Study smarter using AI', 'Play games online', 'Watch movies', 'Browse social media'],
-      ans: 'Study smarter using AI'
-    },
-    {
-      q: 'How many question types are available in Smart Hub Study quizzes?',
-      opts: ['3 types: MCQ, Essay, Structural', '1 type: MCQ only', '2 types: MCQ and True/False', '5 types'],
-      ans: '3 types: MCQ, Essay, Structural'
-    },
-    {
-      q: 'What is the benefit of the anti-cramming engine in this platform?',
-      opts: ['It detects surface memorization vs deep understanding', 'It prevents students from studying', 'It only tests MCQ questions', 'It blocks access to notes'],
-      ans: 'It detects surface memorization vs deep understanding'
-    },
-    {
-      q: 'Which African countries primarily use Mobile Money for payments?',
-      opts: ['Cameroon and other African nations', 'USA and Canada', 'France and Germany', 'China and Japan'],
-      ans: 'Cameroon and other African nations'
-    },
-    {
-      q: 'What does OCR stand for in the context of Smart Hub Study?',
-      opts: ['Optical Character Recognition', 'Online Course Registration', 'Open Content Repository', 'Organised Curriculum Reading'],
-      ans: 'Optical Character Recognition'
-    },
-    {
-      q: 'What is a Progressive Web Application (PWA)?',
-      opts: ['A web app that works offline like a native app', 'A programming language', 'A type of database', 'An operating system'],
-      ans: 'A web app that works offline like a native app'
+      ans: 'Study smarter using AI',
     },
     {
       q: 'Which payment methods are supported by Smart Hub Study?',
-      opts: ['MTN Mobile Money and Orange Money', 'PayPal and Credit Card only', 'Bitcoin only', 'Cash only'],
-      ans: 'MTN Mobile Money and Orange Money'
+      opts: ['MTN MoMo and Orange Money', 'PayPal only', 'Bitcoin only', 'Cash only'],
+      ans: 'MTN MoMo and Orange Money',
     },
     {
-      q: 'How does AI summarization help students with 500+ page notes?',
-      opts: ['Condenses key information into digestible summaries', 'Deletes unnecessary pages', 'Translates notes to another language', 'Prints notes automatically'],
-      ans: 'Condenses key information into digestible summaries'
+      q: 'What is a Progressive Web Application?',
+      opts: ['A web app that works offline', 'A programming language', 'A database type', 'An operating system'],
+      ans: 'A web app that works offline',
     },
     {
-      q: 'What is the purpose of the Exam Countdown feature?',
-      opts: ['Track time remaining and generate a study plan', 'Count how many exams you have failed', 'Block access to social media', 'Notify teachers automatically'],
-      ans: 'Track time remaining and generate a study plan'
-    },
-    {
-      q: 'Which database is used by Smart Hub Study to store student data?',
+      q: 'Which database is used by Smart Hub Study?',
       opts: ['MongoDB', 'MySQL', 'Oracle', 'Microsoft Access'],
-      ans: 'MongoDB'
+      ans: 'MongoDB',
     },
     {
-      q: 'What programming language is used for Smart Hub Study backend?',
-      opts: ['Node.js with Express', 'Python with Django', 'PHP with Laravel', 'Ruby on Rails'],
-      ans: 'Node.js with Express'
+      q: 'What does OCR stand for?',
+      opts: ['Optical Character Recognition', 'Online Course Registration', 'Open Content Repository', 'Organised Reading'],
+      ans: 'Optical Character Recognition',
     },
     {
-      q: 'What is the main challenge students in Cameroon face when studying?',
-      opts: ['Information overload and poor note organization', 'Too many study apps available', 'Too much electricity supply', 'Too fast internet connection'],
-      ans: 'Information overload and poor note organization'
-    },
-    {
-      q: 'What does JWT stand for in web security?',
-      opts: ['JSON Web Token', 'Java Web Technology', 'JavaScript Wrapper Tool', 'Joint Web Transfer'],
-      ans: 'JSON Web Token'
-    },
-    {
-      q: 'How are passwords stored in the Smart Hub Study database?',
-      opts: ['Encrypted using bcrypt hashing', 'In plain text', 'As images', 'They are not stored'],
-      ans: 'Encrypted using bcrypt hashing'
+      q: 'How are passwords stored in the database?',
+      opts: ['Encrypted with bcrypt', 'In plain text', 'As images', 'Not stored'],
+      ans: 'Encrypted with bcrypt',
     },
     {
       q: 'What does the study streak feature track?',
-      opts: ['Consecutive days of study activity', 'Number of notes deleted', 'Internet connection speed', 'Number of login attempts'],
-      ans: 'Consecutive days of study activity'
+      opts: ['Consecutive days of study', 'Notes deleted', 'Internet speed', 'Login attempts'],
+      ans: 'Consecutive days of study',
     },
     {
-      q: 'Which frontend framework is used to build Smart Hub Study?',
+      q: 'Which frontend framework is used?',
       opts: ['React.js', 'Angular', 'Vue.js', 'Svelte'],
-      ans: 'React.js'
+      ans: 'React.js',
+    },
+    {
+      q: 'What does JWT stand for?',
+      opts: ['JSON Web Token', 'Java Web Technology', 'JavaScript Wrapper Tool', 'Joint Web Transfer'],
+      ans: 'JSON Web Token',
+    },
+    {
+      q: `Which best describes "${noteTitle}"?`,
+      opts: ['Academic study material', 'Entertainment content', 'Advertisement', 'Social media post'],
+      ans: 'Academic study material',
+    },
+    {
+      q: 'What is the recommended approach when studying notes?',
+      opts: ['Deep understanding', 'Surface memorization', 'Speed reading only', 'Skipping difficult parts'],
+      ans: 'Deep understanding',
+    },
+    {
+      q: 'What is the main challenge students in Cameroon face?',
+      opts: ['Information overload and poor organization', 'Too many apps', 'Too much electricity', 'Too fast internet'],
+      ans: 'Information overload and poor organization',
     },
   ];
 
-  // Add 25 MCQ questions
-  mcqData.forEach((item, i) => {
-    placeholders.push({
+  const essayTopics = [
+    'main concepts and their academic significance',
+    'practical real-world applications of the key ideas',
+    'how this topic relates to everyday life in Cameroon',
+    'the challenges discussed and their proposed solutions',
+    'the most important lesson learned from this note',
+    'how you would explain this topic to a classmate',
+    'the relationship between the different concepts covered',
+    'how understanding this topic helps your future career',
+    'the limitations or disadvantages mentioned in the content',
+    'how technology is changing this field of study',
+    'the historical background of the main topic',
+    'future developments expected in this area',
+    'how this topic connects to other subjects',
+    'the ethical considerations related to this topic',
+    'your personal reflection on what you learned',
+  ];
+
+  const structuralTopics = [
+    'the step-by-step process described in the note',
+    'how to implement the main concept from start to finish',
+    'the sequence of events or logical steps outlined',
+    'the cause and effect relationships discussed',
+    'how to solve a problem using the methods described',
+    'the framework or model presented in the notes',
+    'how the system or process works from input to output',
+    'the methodology for achieving the main goal',
+    'the procedure for applying the key concept practically',
+    'the logical flow of arguments in the note',
+  ];
+
+  // Determine how many of each type to generate
+  let mcqCount, essayCount, structuralCount;
+
+  if (count === 5) {
+    // Free plan: 3 MCQ, 1 Essay, 1 Structural
+    mcqCount = 3;
+    essayCount = 1;
+    structuralCount = 1;
+  } else {
+    // Pro plan: 25 MCQ, 15 Essay, 10 Structural
+    mcqCount = 25;
+    essayCount = 15;
+    structuralCount = 10;
+  }
+
+  // Add MCQ
+  for (let i = 0; i < mcqCount; i++) {
+    const item = mcqData[i % mcqData.length];
+    all.push({
       question: item.q,
       type: 'mcq',
       options: item.opts,
       correctAnswer: item.ans,
       marks: 2,
     });
-  });
+  }
 
-  // Add 15 Essay questions
-  const essayTopics = [
-    'main concepts and their significance',
-    'practical applications of the key ideas',
-    'how this topic relates to real-world scenarios in Cameroon',
-    'the challenges discussed and proposed solutions',
-    'the most important lesson learned from this note',
-    'how you would explain this topic to a fellow student',
-    'the relationship between the different concepts covered',
-    'how understanding this topic will help in your career',
-    'the limitations or disadvantages mentioned in the content',
-    'how technology is changing this field of study',
-    'the historical background of the main topic',
-    'future developments expected in this area',
-    'how this topic connects to other subjects you study',
-    'the ethical considerations related to this topic',
-    'your personal reflection on what you learned from this note',
-  ];
-
-  essayTopics.forEach((topic, i) => {
-    placeholders.push({
-      question: `Essay Q${i + 1}: Write a detailed essay discussing the ${topic} covered in "${noteTitle}". Support your answer with specific examples from the note.`,
+  // Add Essay
+  for (let i = 0; i < essayCount; i++) {
+    const topic = essayTopics[i % essayTopics.length];
+    all.push({
+      question: `Write a detailed essay discussing the ${topic} covered in "${noteTitle}". Use specific examples.`,
       type: 'essay',
       options: [],
-      correctAnswer: `A comprehensive essay covering ${topic} with relevant examples and critical analysis demonstrating deep understanding of the material.`,
+      correctAnswer: `A comprehensive essay covering ${topic} with examples and critical analysis.`,
       marks: 5,
     });
-  });
+  }
 
-  // Add 10 Structural questions
-  const structuralTopics = [
-    'the step-by-step process described in the note',
-    'how to implement the main concept described',
-    'the sequence of events or steps outlined',
-    'the cause and effect relationships discussed',
-    'how to solve a problem using the methods described',
-    'the framework or model presented in the notes',
-    'how the system or process works from start to finish',
-    'the methodology described for achieving the main goal',
-    'the procedure for applying the key concept practically',
-    'the logical flow of arguments presented in the note',
-  ];
-
-  structuralTopics.forEach((topic, i) => {
-    placeholders.push({
-      question: `Structural Q${i + 1}: Using a clear and numbered structure, outline ${topic} as presented in "${noteTitle}". Your answer must be organized with clear headings and sub-points.`,
+  // Add Structural
+  for (let i = 0; i < structuralCount; i++) {
+    const topic = structuralTopics[i % structuralTopics.length];
+    all.push({
+      question: `Using numbered headings, outline ${topic} as presented in "${noteTitle}".`,
       type: 'structural',
       options: [],
-      correctAnswer: `A well-structured numbered answer with clear headings covering ${topic} as described in the notes, demonstrating systematic understanding.`,
+      correctAnswer: `A well-structured numbered answer covering ${topic} systematically.`,
       marks: 8,
     });
-  });
+  }
 
-  return placeholders;
+  return all;
 };
 
 // ── GENERATE QUIZ ──
 const generateQuiz = async (req, res) => {
   try {
     const { noteId } = req.body;
-
     if (!noteId) {
       return res.status(400).json({ message: 'Note ID is required' });
     }
@@ -342,10 +296,14 @@ const generateQuiz = async (req, res) => {
       return res.status(404).json({ message: 'Note not found' });
     }
 
-    // Delete existing quiz for this note so fresh questions are generated
+    // Check user plan
+    const user = await User.findById(req.user.id);
+    const isPro = user?.plan === 'pro';
+
+    // Delete existing quiz for fresh generation
     await Quiz.findOneAndDelete({ noteId, userId: req.user.id });
 
-    const questions = await generateQuestions(note.rawText, note.title);
+    const questions = await generateQuestions(note.rawText, note.title, isPro);
     const totalMarks = questions.reduce((sum, q) => sum + (q.marks || 1), 0);
 
     const quiz = await Quiz.create({
@@ -355,13 +313,13 @@ const generateQuiz = async (req, res) => {
       totalMarks,
     });
 
-    console.log(`Quiz created with ${questions.length} questions, ${totalMarks} total marks`);
+    console.log(`Quiz created: ${questions.length} questions, isPro: ${isPro}`);
 
     res.status(201).json({
       message: `Quiz generated with ${questions.length} questions!`,
       quiz,
+      isPro,
     });
-
   } catch (error) {
     console.error('Generate quiz error:', error.message);
     res.status(500).json({ message: 'Failed to generate quiz. Please try again.' });
@@ -374,7 +332,9 @@ const submitQuiz = async (req, res) => {
     const { quizId, noteId, answers } = req.body;
 
     const quiz = await Quiz.findById(quizId);
-    if (!quiz) return res.status(404).json({ message: 'Quiz not found' });
+    if (!quiz) {
+      return res.status(404).json({ message: 'Quiz not found' });
+    }
 
     let score = 0;
     const gradedAnswers = [];
@@ -385,11 +345,11 @@ const submitQuiz = async (req, res) => {
       let earnedMarks = 0;
 
       if (question.type === 'mcq') {
-        isCorrect = studentAnswer.trim().toLowerCase() ===
+        isCorrect =
+          studentAnswer.trim().toLowerCase() ===
           question.correctAnswer.trim().toLowerCase();
         earnedMarks = isCorrect ? question.marks : 0;
       } else {
-        // Essay and structural — award partial marks for meaningful answers
         if (studentAnswer.trim().length > 30) {
           earnedMarks = Math.floor(question.marks * 0.6);
           isCorrect = true;
@@ -415,11 +375,11 @@ const submitQuiz = async (req, res) => {
     const understood = percentage >= 70;
 
     let feedback = '';
-    if (percentage >= 90) feedback = '🏆 Excellent! You have mastered this topic completely!';
-    else if (percentage >= 70) feedback = '✅ Good job! You understand this topic well. Keep it up!';
-    else if (percentage >= 50) feedback = '⚠️ Fair attempt. Review the weak areas and try again.';
-    else if (percentage >= 30) feedback = '📚 You need more study. Go back and review the notes carefully.';
-    else feedback = '❌ This topic needs serious attention. Restudy thoroughly before your exam.';
+    if (percentage >= 90) feedback = '🏆 Excellent! You have completely mastered this topic!';
+    else if (percentage >= 70) feedback = '✅ Good job! You understand this topic well!';
+    else if (percentage >= 50) feedback = '⚠️ Fair attempt. Review weak areas and try again.';
+    else if (percentage >= 30) feedback = '📚 You need more study. Review the notes carefully.';
+    else feedback = '❌ This topic needs serious attention. Restudy before your exam.';
 
     const result = await Result.create({
       userId: req.user.id,
@@ -433,17 +393,56 @@ const submitQuiz = async (req, res) => {
       feedback,
     });
 
-    // Update user points and last study date
+    // ── UPDATE STREAK ──
+    const userDoc = await User.findById(req.user.id);
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const lastStudy = userDoc.lastStudyDate
+      ? new Date(userDoc.lastStudyDate)
+      : null;
+
+    if (lastStudy) lastStudy.setHours(0, 0, 0, 0);
+
+    let newStreak = userDoc.studyStreak || 0;
+
+    if (!lastStudy) {
+      newStreak = 1;
+    } else if (lastStudy.getTime() === today.getTime()) {
+      newStreak = userDoc.studyStreak;
+    } else if (lastStudy.getTime() === yesterday.getTime()) {
+      newStreak = userDoc.studyStreak + 1;
+    } else {
+      newStreak = 1;
+    }
+
+    // Check for badges
+    const newBadges = [...(userDoc.badges || [])];
+    if (newStreak >= 3 && !newBadges.includes('streak_3')) newBadges.push('streak_3');
+    if (newStreak >= 7 && !newBadges.includes('streak_7')) newBadges.push('streak_7');
+    if (newStreak >= 14 && !newBadges.includes('streak_14')) newBadges.push('streak_14');
+    if (newStreak >= 30 && !newBadges.includes('streak_30')) newBadges.push('streak_30');
+    if (percentage >= 90 && !newBadges.includes('top_scorer')) newBadges.push('top_scorer');
+
+    const pointsEarned = Math.floor(score / 10) + (understood ? 10 : 0);
+
     await User.findByIdAndUpdate(req.user.id, {
-      $inc: { points: Math.floor(score / 10) },
+      $inc: { points: pointsEarned },
       lastStudyDate: new Date(),
+      studyStreak: newStreak,
+      badges: newBadges,
     });
 
     res.status(201).json({
       message: 'Quiz submitted successfully!',
       result,
+      streak: newStreak,
+      pointsEarned,
     });
-
   } catch (error) {
     console.error('Submit quiz error:', error.message);
     res.status(500).json({ message: 'Failed to submit quiz. Please try again.' });
@@ -467,9 +466,11 @@ const getResult = async (req, res) => {
   try {
     const result = await Result.findOne({
       _id: req.params.id,
-      userId: req.user.id
+      userId: req.user.id,
     }).populate('noteId', 'title');
-    if (!result) return res.status(404).json({ message: 'Result not found' });
+    if (!result) {
+      return res.status(404).json({ message: 'Result not found' });
+    }
     res.status(200).json({ result });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
@@ -481,9 +482,12 @@ const getStats = async (req, res) => {
   try {
     const results = await Result.find({ userId: req.user.id });
     const totalQuizzes = results.length;
-    const avgScore = totalQuizzes > 0
-      ? Math.round(results.reduce((sum, r) => sum + r.percentage, 0) / totalQuizzes)
-      : 0;
+    const avgScore =
+      totalQuizzes > 0
+        ? Math.round(
+            results.reduce((sum, r) => sum + r.percentage, 0) / totalQuizzes
+          )
+        : 0;
     const understood = results.filter(r => r.understood).length;
     res.status(200).json({ totalQuizzes, avgScore, understood });
   } catch (error) {

@@ -1,10 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { FaEnvelope, FaLock, FaUser, FaUniversity, FaBookOpen, FaEye, FaEyeSlash } from 'react-icons/fa';
-import { registerUser } from '../services/authService';
+import {
+  FaEnvelope, FaLock, FaUser, FaUniversity,
+  FaBookOpen, FaEye, FaEyeSlash
+} from 'react-icons/fa';
+import { useTranslation } from 'react-i18next';
+import { registerUser, isLoggedIn } from '../services/authService';
 
 function Register() {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -16,6 +21,13 @@ function Register() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  // Auto redirect if already logged in
+  useEffect(() => {
+    if (isLoggedIn()) {
+      navigate('/dashboard');
+    }
+  }, [navigate]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -34,35 +46,35 @@ function Register() {
     setLoading(true);
     try {
       await registerUser(formData);
-      toast.success('Account created successfully! Welcome 🎉');
+      toast.success('Account created! Welcome to Smart Hub Study 🎉');
       navigate('/dashboard');
     } catch (error) {
-      const message = error.response?.data?.message || 'Registration failed. Please try again.';
+      const message = error.response?.data?.message || 'Registration failed.';
       toast.error(message);
     }
     setLoading(false);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary via-secondary to-accent flex items-center justify-center px-4 py-10">
+    <div className="min-h-screen bg-gradient-to-br from-primary via-secondary to-accent flex items-center justify-center px-4 py-8">
       <div className="w-full max-w-md">
 
         <div className="text-center mb-6">
           <div className="bg-white w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-lg">
             <FaBookOpen className="text-primary text-4xl" />
           </div>
-          <h1 className="text-4xl font-bold text-white">Smart Hub Study</h1>
-          <p className="text-blue-100 mt-2">Join students studying smarter in Cameroon</p>
+          <h1 className="text-3xl font-bold text-white">Smart Hub Study</h1>
+          <p className="text-blue-100 mt-2 text-sm">Join students studying smarter in Cameroon 🇨🇲</p>
         </div>
 
-        <div className="bg-white rounded-3xl shadow-2xl p-8">
-          <h2 className="text-2xl font-bold text-gray-800 mb-1">Create Account</h2>
-          <p className="text-gray-500 text-sm mb-6">Fill in your details to get started</p>
+        <div className="bg-white rounded-3xl shadow-2xl p-6 md:p-8">
+          <h2 className="text-2xl font-bold text-gray-800 mb-1">{t('createYourAccount')}</h2>
+          <p className="text-gray-500 text-sm mb-5">{t('fillDetails')}</p>
 
           <form onSubmit={handleRegister} className="space-y-4">
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Full Name</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">{t('fullName')}</label>
               <div className="relative">
                 <FaUser className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
@@ -78,7 +90,7 @@ function Register() {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Email Address</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">{t('emailAddress')}</label>
               <div className="relative">
                 <FaEnvelope className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
@@ -94,7 +106,7 @@ function Register() {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">University Name</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">{t('university')}</label>
               <div className="relative">
                 <FaUniversity className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
@@ -110,7 +122,7 @@ function Register() {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Password</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">{t('password')}</label>
               <div className="relative">
                 <FaLock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
@@ -133,7 +145,7 @@ function Register() {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Confirm Password</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">{t('confirmPassword')}</label>
               <div className="relative">
                 <FaLock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
@@ -160,22 +172,18 @@ function Register() {
               disabled={loading}
               className="w-full bg-primary hover:bg-secondary text-white font-bold py-3 rounded-xl transition duration-300 text-lg shadow-lg mt-2"
             >
-              {loading ? 'Creating Account...' : 'Create Account →'}
+              {loading ? 'Creating Account...' : `${t('createAccount')} →`}
             </button>
 
           </form>
 
           <p className="text-center text-gray-600 text-sm mt-6">
-            Already have an account?{' '}
+            {t('alreadyHaveAccount')}{' '}
             <Link to="/" className="text-secondary font-bold hover:underline">
-              Sign In
+              {t('signIn')}
             </Link>
           </p>
         </div>
-
-        <p className="text-center text-blue-100 text-xs mt-6">
-          Built for University Students in Cameroon 🇨🇲
-        </p>
       </div>
     </div>
   );

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Hub Study — Offline</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    background: linear-gradient(135deg, #1a5276, #2e86c1);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    color: white;
+    text-align: center;
+  }
+  .card {
+    background: rgba(255,255,255,0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 24px;
+    padding: 2.5rem;
+    max-width: 400px;
+    width: 100%;
+  }
+  .icon { font-size: 4rem; margin-bottom: 1rem; }
+  h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+  p { color: rgba(255,255,255,0.8); font-size: 0.9rem; margin-bottom: 1.5rem; line-height: 1.6; }
+  .features { text-align: left; margin-bottom: 1.5rem; }
+  .feature { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; margin-bottom: 0.5rem; color: rgba(255,255,255,0.9); }
+  .check { color: #1abc9c; font-size: 1rem; }
+  button {
+    background: white;
+    color: #1a5276;
+    border: none;
+    padding: 0.8rem 2rem;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    width: 100%;
+  }
+  button:hover { background: #e8f4fd; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="icon">📶</div>
+  <h1>You are Offline</h1>
+  <p>No internet connection detected. But don't worry — you can still access your previously loaded content!</p>
+
+  <div class="features">
+    <p style="font-weight: bold; margin-bottom: 0.8rem; color: #1abc9c;">✅ Available Offline:</p>
+    <div class="feature"><span class="check">✓</span> View your saved notes</div>
+    <div class="feature"><span class="check">✓</span> Read AI summaries</div>
+    <div class="feature"><span class="check">✓</span> View quiz results</div>
+    <div class="feature"><span class="check">✓</span> Exam countdown timers</div>
+    <div class="feature"><span class="check">✓</span> Your profile information</div>
+  </div>
+
+  <p style="font-size: 0.8rem; color: rgba(255,255,255,0.6); margin-bottom: 1rem;">
+    Connect to the internet to upload notes, generate quizzes, and use AI features.
+  </p>
+
+  <button onclick="window.location.reload()">
+    🔄 Try Again
+  </button>
+</div>
+</body>
+</html>

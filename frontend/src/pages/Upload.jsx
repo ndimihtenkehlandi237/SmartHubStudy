@@ -22,7 +22,9 @@ function Upload() {
     courseLevel: '',
   });
 
-  useEffect(() => { fetchSubjects(); }, []);
+  useEffect(() => {
+    fetchSubjects();
+  }, );
 
   const fetchSubjects = async () => {
     try {
@@ -31,8 +33,17 @@ function Upload() {
       });
       setSubjects(res.data.subjects);
     } catch (error) {
-      console.error('Error fetching subjects');
-    }
+  console.error('Upload error:', error);
+  const code = error.response?.data?.code;
+  const message = error.response?.data?.message || 'Upload failed. Please try again.';
+
+  if (code === 'FREE_LIMIT_REACHED') {
+    toast.error('Free plan limit reached! Upgrade to Pro for unlimited uploads.');
+    navigate('/payment');
+  } else {
+    toast.error(message);
+  }
+}
   };
 
   const createSubject = async () => {

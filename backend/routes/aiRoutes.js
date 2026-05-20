@@ -1,8 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const { solveMath } = require('../controllers/aiController');
-const { protect } = require('../middleware/authMiddleware');
+const { protect, proOnly } = require('../middleware/authMiddleware');
 
-router.post('/solve-math', protect, solveMath);
+// Math solver is Pro only
+router.post('/solve-math', protect, proOnly, solveMath);
 
 module.exports = router;
