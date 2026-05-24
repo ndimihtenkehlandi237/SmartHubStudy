@@ -402,25 +402,27 @@ const submitQuiz = async (req, res) => {
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
 
-    const lastStudy = userDoc.lastStudyDate
-      ? new Date(userDoc.lastStudyDate)
+    const lastStreak = userDoc.lastStreakDate
+      ? new Date(userDoc.lastStreakDate)
       : null;
-
-    if (lastStudy) lastStudy.setHours(0, 0, 0, 0);
+    if (lastStreak) lastStreak.setHours(0, 0, 0, 0);
 
     let newStreak = userDoc.studyStreak || 0;
 
-    if (!lastStudy) {
+    if (!lastStreak) {
       newStreak = 1;
-    } else if (lastStudy.getTime() === today.getTime()) {
+    } else if (lastStreak.getTime() === today.getTime()) {
+      // Already completed quiz today — keep streak
       newStreak = userDoc.studyStreak;
-    } else if (lastStudy.getTime() === yesterday.getTime()) {
+    } else if (lastStreak.getTime() === yesterday.getTime()) {
+      // Completed quiz yesterday — increase streak
       newStreak = userDoc.studyStreak + 1;
     } else {
+      // Missed days — reset
       newStreak = 1;
     }
 
-    // Check for badges
+    // Streak badges
     const newBadges = [...(userDoc.badges || [])];
     if (newStreak >= 3 && !newBadges.includes('streak_3')) newBadges.push('streak_3');
     if (newStreak >= 7 && !newBadges.includes('streak_7')) newBadges.push('streak_7');
@@ -433,19 +435,33 @@ const submitQuiz = async (req, res) => {
     await User.findByIdAndUpdate(req.user.id, {
       $inc: { points: pointsEarned },
       lastStudyDate: new Date(),
+      lastStreakDate: today,
+      streakQuizCompletedToday: true,
       studyStreak: newStreak,
       badges: newBadges,
     });
+
+    // ── UPDATE COMPETITION SCORE ──
+    if (userDoc.currentCompetitionId) {
+      const { updateScore } = require('./competitionController');
+      await updateScore(
+        userDoc.currentCompetitionId,
+        req.user.id,
+        pointsEarned,
+        percentage
+      );
+    }
 
     res.status(201).json({
       message: 'Quiz submitted successfully!',
       result,
       streak: newStreak,
       pointsEarned,
+      streakUpdated: true,
     });
   } catch (error) {
     console.error('Submit quiz error:', error.message);
-    res.status(500).json({ message: 'Failed to submit quiz. Please try again.' });
+    res.status(500).json({ message: 'Failed to submit quiz.' });
   }
 };
 

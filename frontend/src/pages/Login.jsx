@@ -15,14 +15,13 @@ function Login() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  // Auto redirect if already logged in
   useEffect(() => {
     if (isLoggedIn()) {
       navigate('/dashboard');
     }
   }, [navigate]);
 
-  const handleLogin = async (e) => {
+  const handleLogin = async e => {
     e.preventDefault();
     setLoading(true);
     try {
@@ -40,19 +39,23 @@ function Login() {
     <div className="min-h-screen bg-gradient-to-br from-primary via-secondary to-accent flex items-center justify-center px-4 py-8">
       <div className="w-full max-w-md">
 
-        {/* Logo */}
         <div className="text-center mb-8">
           <div className="bg-white w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-lg">
             <FaBookOpen className="text-primary text-4xl" />
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold text-white">Smart Hub Study</h1>
-          <p className="text-blue-100 mt-2 text-sm">Your AI-Powered Study Companion 🇨🇲</p>
+          <h1 className="text-3xl md:text-4xl font-bold text-white">
+            {t('appName')}
+          </h1>
+          <p className="text-blue-100 mt-2 text-sm">{t('appTagline')}</p>
         </div>
 
-        {/* Card */}
         <div className="bg-white rounded-3xl shadow-2xl p-6 md:p-8">
-          <h2 className="text-2xl font-bold text-gray-800 mb-1">{t('welcomeBack')}</h2>
-          <p className="text-gray-500 text-sm mb-6">{t('signInToContinue')}</p>
+          <h2 className="text-2xl font-bold text-gray-800 mb-1">
+            {t('welcomeBack')}
+          </h2>
+          <p className="text-gray-500 text-sm mb-6">
+            {t('signInToContinue')}
+          </p>
 
           <form onSubmit={handleLogin} className="space-y-5">
 
@@ -65,8 +68,8 @@ function Login() {
                 <input
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email"
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="landi@gmail.com"
                   required
                   className="w-full pl-11 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-secondary text-gray-700 transition"
                 />
@@ -82,8 +85,8 @@ function Login() {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="••••••••"
                   required
                   className="w-full pl-11 pr-12 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-secondary text-gray-700 transition"
                 />
@@ -98,7 +101,10 @@ function Login() {
             </div>
 
             <div className="text-right">
-              <button type="button" className="text-sm text-secondary hover:underline font-medium">
+              <button
+                type="button"
+                className="text-sm text-secondary hover:underline font-medium"
+              >
                 {t('forgotPassword')}
               </button>
             </div>
@@ -106,9 +112,9 @@ function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-primary hover:bg-secondary text-white font-bold py-3 rounded-xl transition duration-300 text-lg shadow-lg"
+              className="w-full bg-primary hover:bg-secondary text-white font-bold py-3 rounded-xl transition duration-300 text-lg shadow-lg disabled:opacity-70"
             >
-              {loading ? 'Signing In...' : `${t('signIn')} →`}
+              {loading ? t('signingIn') : `${t('signIn')} →`}
             </button>
 
           </form>
@@ -121,14 +127,17 @@ function Login() {
 
           <p className="text-center text-gray-600 text-sm">
             {t('noAccount')}{' '}
-            <Link to="/register" className="text-secondary font-bold hover:underline">
+            <Link
+              to="/register"
+              className="text-secondary font-bold hover:underline"
+            >
               {t('createAccount')}
             </Link>
           </p>
         </div>
 
         <p className="text-center text-blue-100 text-xs mt-6">
-          Built for University Students in Cameroon 🇨🇲
+          {t('builtForCameroon')}
         </p>
       </div>
     </div>

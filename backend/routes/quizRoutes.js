@@ -1,8 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const {
-  generateQuiz, submitQuiz,
-  getResults, getResult, getStats
+  generateQuiz,
+  submitQuiz,
+  getResults,
+  getResult,
+  getStats,
 } = require('../controllers/quizController');
 const { protect } = require('../middleware/authMiddleware');
 
