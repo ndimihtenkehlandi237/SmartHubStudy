@@ -1,8 +1,18 @@
 import axios from 'axios';
 
+const BACKEND_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+
 const API = axios.create({
-  baseURL: 'https://smarthubstudy-1.onrender.com',
-  timeout: 10000,
+  baseURL: BACKEND_URL,
+  timeout: 15000,
+});
+
+API.interceptors.request.use(config => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
 });
 
 API.interceptors.response.use(

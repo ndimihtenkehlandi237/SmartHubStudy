@@ -8,12 +8,16 @@ const app = express();
 app.set('trust proxy', 1);
 
 app.use(cors({
-  origin: ['http://localhost:3000', 'https://smart-hub-study.vercel.app'],
+  origin: [
+    'http://localhost:3000',
+    'http://localhost:5000',
+    'https://smart-hub-study.vercel.app',
+    'https://smart-hub-study-git-main.vercel.app',
+  ],
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
-
 app.options('*', cors());
 
 app.use(express.json({ limit: '10mb' }));
