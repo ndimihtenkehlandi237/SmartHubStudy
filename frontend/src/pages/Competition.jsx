@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 import {
   FaArrowLeft, FaTrophy, FaSpinner,
   FaFire, FaStar, FaCoins, FaClock
@@ -21,37 +22,36 @@ const getRewardText = (rank, type) => {
     if (rank === 2) return '5 tokens + 3 uploads + 3 quizzes';
     if (rank === 3) return '3 tokens + 1 upload + 1 quiz';
   }
-  if (type === 'pro') {
-    if (rank === 1) return '10% discount on next subscription';
-  }
+  if (type === 'pro' && rank === 1) return '10% discount on next subscription';
   return '';
 };
-function TokenCard({ tokens }) {
+
+function TokenCard({ tokens, t }) {
   return (
     <div className="bg-gradient-to-r from-yellow-400 to-orange-400 rounded-2xl p-4 text-white">
-      <h3 className="font-bold mb-3">My Rewards</h3>
+      <h3 className="font-bold mb-3">{t('myRewards')}</h3>
       <div className="grid grid-cols-3 gap-3">
         <div className="bg-white bg-opacity-20 rounded-xl p-3 text-center">
           <FaCoins className="text-2xl mx-auto mb-1" />
           <p className="text-2xl font-black">{tokens.tokenBalance}</p>
-          <p className="text-xs opacity-80">Tokens</p>
+          <p className="text-xs opacity-80">{t('tokensLabel')}</p>
         </div>
         <div className="bg-white bg-opacity-20 rounded-xl p-3 text-center">
           <FaStar className="text-2xl mx-auto mb-1" />
           <p className="text-2xl font-black">{tokens.extraUploads}</p>
-          <p className="text-xs opacity-80">Extra Uploads</p>
+          <p className="text-xs opacity-80">{t('extraUploadsLabel')}</p>
         </div>
         <div className="bg-white bg-opacity-20 rounded-xl p-3 text-center">
           <FaFire className="text-2xl mx-auto mb-1" />
           <p className="text-2xl font-black">{tokens.extraQuizzes}</p>
-          <p className="text-xs opacity-80">Extra Quizzes</p>
+          <p className="text-xs opacity-80">{t('extraQuizzesLabel')}</p>
         </div>
       </div>
     </div>
   );
 }
 
-function CompetitionCard({ competition, isParticipant, canJoin, dayOfWeek, isPro, onJoin, joining }) {
+function CompetitionCard({ competition, isParticipant, dayOfWeek, isPro, onJoin, joining, t }) {
   const navigate = useNavigate();
   const daysUntilMonday = dayOfWeek === 1 ? 0 : (8 - dayOfWeek) % 7;
 
@@ -67,8 +67,6 @@ function CompetitionCard({ competition, isParticipant, canJoin, dayOfWeek, isPro
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-
-      {/* Status Banner */}
       <div className={`p-4 text-white ${
         competition.status === 'active'
           ? 'bg-gradient-to-r from-green-500 to-emerald-600'
@@ -79,12 +77,12 @@ function CompetitionCard({ competition, isParticipant, canJoin, dayOfWeek, isPro
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm opacity-80 font-medium">
-              {isPro ? 'Pro Plan Competition' : 'Free Plan Competition'}
+              {isPro ? t('proCompetition') : t('freeCompetition')}
             </p>
             <h2 className="text-xl font-black mt-0.5">
-              {competition.status === 'active' ? '🏃 Competition Active!' :
-               competition.status === 'upcoming' ? '⏳ Coming Soon' :
-               '✅ Completed'}
+              {competition.status === 'active' ? t('competitionActive') :
+               competition.status === 'upcoming' ? t('comingSoon') :
+               t('completedStatus')}
             </h2>
             <p className="text-sm opacity-80 mt-1">
               {new Date(competition.weekStart).toLocaleDateString('en-GB', {
@@ -100,33 +98,20 @@ function CompetitionCard({ competition, isParticipant, canJoin, dayOfWeek, isPro
       </div>
 
       <div className="p-4 space-y-4">
-
-        {/* How it works */}
         <div className="bg-blue-50 rounded-xl p-4">
-          <h4 className="font-bold text-blue-800 mb-2 text-sm">📋 How it Works</h4>
+          <h4 className="font-bold text-blue-800 mb-2 text-sm">{t('howItWorks')}</h4>
           <ul className="text-xs text-blue-700 space-y-1.5">
-            <li className="flex items-start gap-2">
-              <span className="font-bold flex-shrink-0">1.</span>
-              Join on Monday — the only entry day each week
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="font-bold flex-shrink-0">2.</span>
-              Play quizzes daily to earn points and climb the leaderboard
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="font-bold flex-shrink-0">3.</span>
-              Your rank updates after every quiz you complete
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="font-bold flex-shrink-0">4.</span>
-              Winners are rewarded automatically on Sunday at midnight
-            </li>
+            {[t('joinMondayRule'), t('playDailyRule'), t('rankUpdatesRule'), t('sundayRewardRule')].map((rule, i) => (
+              <li key={i} className="flex items-start gap-2">
+                <span className="font-bold flex-shrink-0">{i + 1}.</span>
+                {rule}
+              </li>
+            ))}
           </ul>
         </div>
 
-        {/* Rewards */}
         <div className="bg-yellow-50 rounded-xl p-4">
-          <h4 className="font-bold text-yellow-800 mb-2 text-sm">🏆 Weekly Rewards</h4>
+          <h4 className="font-bold text-yellow-800 mb-2 text-sm">{t('weeklyRewards')}</h4>
           <div className="space-y-2">
             {[1, 2, 3].map(rank => {
               const reward = getRewardText(rank, isPro ? 'pro' : 'free');
@@ -142,7 +127,6 @@ function CompetitionCard({ competition, isParticipant, canJoin, dayOfWeek, isPro
           </div>
         </div>
 
-        {/* Join / Status sections */}
         {competition.status === 'active' && !isParticipant && (
           <>
             {dayOfWeek === 1 ? (
@@ -152,15 +136,15 @@ function CompetitionCard({ competition, isParticipant, canJoin, dayOfWeek, isPro
                 className="w-full bg-primary hover:bg-secondary text-white font-bold py-4 rounded-xl transition flex items-center justify-center gap-2 text-lg"
               >
                 {joining ? <FaSpinner className="animate-spin" /> : <FaTrophy />}
-                {joining ? 'Joining...' : "Join This Week's Competition!"}
+                {joining ? 'Joining...' : t('joinCompetitionBtn')}
               </button>
             ) : (
               <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 text-center">
                 <FaClock className="text-gray-400 text-3xl mx-auto mb-2" />
-                <p className="font-bold text-gray-600 text-sm">Competition entry closed</p>
+                <p className="font-bold text-gray-600 text-sm">{t('competitionEntryClosed')}</p>
                 <p className="text-gray-400 text-xs mt-1">
-                  You can only join on Monday.
-                  {daysUntilMonday > 0 && ` Next Monday is in ${daysUntilMonday} days.`}
+                  {t('entryClosedMsg')}{' '}
+                  {daysUntilMonday > 0 && `${t('nextMondayMsg')} ${daysUntilMonday} ${t('daysUntilMonday')}`}
                 </p>
               </div>
             )}
@@ -169,46 +153,43 @@ function CompetitionCard({ competition, isParticipant, canJoin, dayOfWeek, isPro
 
         {competition.status === 'active' && isParticipant && (
           <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-center">
-            <p className="font-bold text-green-700 text-sm">✅ You are in this competition!</p>
-            <p className="text-green-500 text-xs mt-1">
-              Play quizzes daily to climb the leaderboard!
-            </p>
+            <p className="font-bold text-green-700 text-sm">{t('youAreIn')}</p>
+            <p className="text-green-500 text-xs mt-1">Play quizzes daily to climb the leaderboard!</p>
             <button
               onClick={() => navigate('/notes')}
               className="mt-3 bg-green-600 text-white font-bold px-6 py-2 rounded-xl hover:bg-green-700 transition text-sm"
             >
-              Play Quiz Now →
+              {t('playQuizNow')}
             </button>
           </div>
         )}
 
         {competition.status === 'upcoming' && (
           <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-center">
-            <p className="font-bold text-blue-700 text-sm">⏳ Competition starts on Monday!</p>
+            <p className="font-bold text-blue-700 text-sm">{t('comingSoon')}</p>
             <p className="text-blue-500 text-xs mt-1">
               {daysUntilMonday === 0
                 ? 'Today is Monday! Come back to join!'
-                : `${daysUntilMonday} days until the next competition.`}
+                : `${daysUntilMonday} ${t('daysUntilMonday')}`}
             </p>
           </div>
         )}
-
       </div>
     </div>
   );
 }
 
-function Leaderboard({ leaderboard, userId, competition }) {
+function Leaderboard({ leaderboard, userId, competition, t }) {
   if (leaderboard.length === 0) {
     return (
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
         <div className="p-4 border-b border-gray-100">
-          <h3 className="font-bold text-gray-800 text-lg">🏅 Leaderboard</h3>
+          <h3 className="font-bold text-gray-800 text-lg">{t('leaderboardTitle')}</h3>
         </div>
         <div className="p-8 text-center text-gray-400">
           <FaTrophy className="text-4xl mx-auto mb-3 opacity-30" />
-          <p className="text-sm">No participants yet this week.</p>
-          <p className="text-xs mt-1">Be the first to join!</p>
+          <p className="text-sm">{t('noParticipants')}</p>
+          <p className="text-xs mt-1">{t('beFirst')}</p>
         </div>
       </div>
     );
@@ -217,9 +198,9 @@ function Leaderboard({ leaderboard, userId, competition }) {
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
       <div className="p-4 border-b border-gray-100">
-        <h3 className="font-bold text-gray-800 text-lg">🏅 Leaderboard</h3>
+        <h3 className="font-bold text-gray-800 text-lg">{t('leaderboardTitle')}</h3>
         <p className="text-gray-400 text-xs mt-0.5">
-          {competition?.participants?.length || 0} participants this week
+          {competition?.participants?.length || 0} {t('participantsLabel')}
         </p>
       </div>
       <div className="divide-y divide-gray-100">
@@ -229,29 +210,22 @@ function Leaderboard({ leaderboard, userId, competition }) {
           return (
             <div
               key={i}
-              className={`flex items-center gap-4 p-4 ${
-                rank <= 3 ? 'bg-yellow-50' : ''
-              } ${isCurrentUser ? 'bg-blue-50' : ''}`}
+              className={`flex items-center gap-4 p-4 ${rank <= 3 ? 'bg-yellow-50' : ''} ${isCurrentUser ? 'bg-blue-50' : ''}`}
             >
               <div className="text-2xl w-10 text-center flex-shrink-0">
                 {getRankIcon(rank)}
               </div>
               <div className="flex-1 min-w-0">
-                <p className={`font-bold text-sm truncate ${
-                  isCurrentUser ? 'text-primary' : 'text-gray-800'
-                }`}>
-                  {participant.fullName}
-                  {isCurrentUser && ' (You)'}
+                <p className={`font-bold text-sm truncate ${isCurrentUser ? 'text-primary' : 'text-gray-800'}`}>
+                  {participant.fullName}{isCurrentUser && ' (You)'}
                 </p>
                 <p className="text-xs text-gray-400 truncate">
-                  {participant.university} •{' '}
-                  {participant.quizzesPlayed} quizzes •{' '}
-                  {participant.daysPlayed} days
+                  {participant.university} • {participant.quizzesPlayed} quizzes • {participant.daysPlayed} days
                 </p>
               </div>
               <div className="text-right flex-shrink-0">
                 <p className="font-black text-primary text-lg">{participant.points}</p>
-                <p className="text-xs text-gray-400">pts</p>
+                <p className="text-xs text-gray-400">{t('ptsLabel')}</p>
               </div>
             </div>
           );
@@ -260,23 +234,20 @@ function Leaderboard({ leaderboard, userId, competition }) {
     </div>
   );
 }
+
 function Competition() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const user = getUser();
   const isPro = user?.plan === 'pro';
 
   const [competition, setCompetition] = useState(null);
   const [leaderboard, setLeaderboard] = useState([]);
   const [isParticipant, setIsParticipant] = useState(false);
-  const [canJoin, setCanJoin] = useState(false);
   const [dayOfWeek, setDayOfWeek] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [joining, setJoining] = useState(false);
-  const [tokens, setTokens] = useState({
-    tokenBalance: 0,
-    extraUploads: 0,
-    extraQuizzes: 0,
-  });
+  const [tokens, setTokens] = useState({ tokenBalance: 0, extraUploads: 0, extraQuizzes: 0 });
   const [userRank, setUserRank] = useState(0);
 
   const fetchData = useCallback(async () => {
@@ -289,7 +260,6 @@ function Competition() {
       ]);
       setCompetition(compRes.data.competition);
       setIsParticipant(compRes.data.isParticipant);
-      setCanJoin(compRes.data.canJoin);
       setDayOfWeek(compRes.data.dayOfWeek);
       setLeaderboard(lbRes.data.leaderboard || []);
       setUserRank(lbRes.data.userRank || 0);
@@ -305,16 +275,12 @@ function Competition() {
   }, [fetchData]);
 
   const handleJoin = async () => {
-    if (!canJoin) {
-      toast.error('You can only join on Monday. Check back next Monday!');
-      return;
-    }
     setJoining(true);
     try {
       await API.post('/api/competition/join', {}, {
         headers: { Authorization: `Bearer ${getToken()}` }
       });
-      toast.success('You joined the competition! Play quizzes daily to earn points. 🏆');
+      toast.success('You joined the competition! 🏆');
       fetchData();
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to join competition');
@@ -339,8 +305,8 @@ function Competition() {
           <FaArrowLeft className="text-xl" />
         </button>
         <div>
-          <h1 className="text-xl font-bold text-gray-800">Weekly Competition 🏆</h1>
-          <p className="text-gray-500 text-sm">Compete, earn rewards, study better</p>
+          <h1 className="text-xl font-bold text-gray-800">{t('weeklyCompetitionTitle')}</h1>
+          <p className="text-gray-500 text-sm">{t('competeEarnRewards')}</p>
         </div>
         {userRank > 0 && (
           <div className="ml-auto bg-primary text-white px-3 py-1.5 rounded-xl text-sm font-bold">
@@ -351,32 +317,29 @@ function Competition() {
 
       <div className="max-w-2xl mx-auto p-4 md:p-8 space-y-4">
 
-        {/* Token Balance for Free Users */}
-        {!isPro && <TokenCard tokens={tokens} />}
+        {!isPro && <TokenCard tokens={tokens} t={t} />}
 
-        {/* Competition Card */}
         <CompetitionCard
           competition={competition}
           isParticipant={isParticipant}
-          canJoin={canJoin}
           dayOfWeek={dayOfWeek}
           isPro={isPro}
           onJoin={handleJoin}
           joining={joining}
+          t={t}
         />
 
-        {/* Leaderboard */}
         <Leaderboard
           leaderboard={leaderboard}
           userId={user?.id}
           competition={competition}
+          t={t}
         />
 
-        {/* Previous Winners */}
         {competition?.winners?.length > 0 && (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="p-4 border-b border-gray-100">
-              <h3 className="font-bold text-gray-800 text-lg">🏆 Previous Winners</h3>
+              <h3 className="font-bold text-gray-800 text-lg">{t('previousWinners')}</h3>
             </div>
             <div className="divide-y divide-gray-100">
               {competition.winners.map((winner, i) => (
@@ -386,7 +349,7 @@ function Competition() {
                     <p className="font-bold text-gray-800 text-sm">{winner.fullName}</p>
                     <p className="text-xs text-green-600 font-medium">🎁 {winner.reward}</p>
                   </div>
-                  <p className="font-black text-primary">{winner.points} pts</p>
+                  <p className="font-black text-primary">{winner.points} {t('ptsLabel')}</p>
                 </div>
               ))}
             </div>

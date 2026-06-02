@@ -1,34 +1,16 @@
 import axios from 'axios';
-import { getToken, logout } from './authService';
 
-// ── PERFORMANCE: Single axios instance — no recreation on each call ──
 const API = axios.create({
   baseURL: 'https://smarthubstudy-1.onrender.com',
-  timeout: 30000, // 30 second timeout
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  timeout: 10000,
 });
 
-// ── SECURITY: Auto-attach JWT token to every request ──
-API.interceptors.request.use(
-  config => {
-    const token = getToken();
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  error => Promise.reject(error)
-);
-
-// ── SECURITY: Auto handle 401 unauthorized — log user out ──
 API.interceptors.response.use(
-  response => response,
+  r => r,
   error => {
     if (error.response?.status === 401) {
-      // Token expired or invalid — clear storage and redirect
-      logout();
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
       window.location.href = '/';
     }
     return Promise.reject(error);

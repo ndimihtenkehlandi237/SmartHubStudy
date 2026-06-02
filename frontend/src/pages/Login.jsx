@@ -26,13 +26,13 @@ function Login() {
     setLoading(true);
     try {
       await loginUser(email, password);
-      toast.success('Login successful! Welcome back 🎉');
+      toast.success('Login successful! 🎉');
       navigate('/dashboard');
     } catch (error) {
       const message = error.response?.data?.message || 'Login failed. Please try again.';
       toast.error(message);
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -43,19 +43,13 @@ function Login() {
           <div className="bg-white w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-lg">
             <FaBookOpen className="text-primary text-4xl" />
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold text-white">
-            {t('appName')}
-          </h1>
+          <h1 className="text-3xl md:text-4xl font-bold text-white">{t('appName')}</h1>
           <p className="text-blue-100 mt-2 text-sm">{t('appTagline')}</p>
         </div>
 
         <div className="bg-white rounded-3xl shadow-2xl p-6 md:p-8">
-          <h2 className="text-2xl font-bold text-gray-800 mb-1">
-            {t('welcomeBack')}
-          </h2>
-          <p className="text-gray-500 text-sm mb-6">
-            {t('signInToContinue')}
-          </p>
+          <h2 className="text-2xl font-bold text-gray-800 mb-1">{t('welcomeBack')}</h2>
+          <p className="text-gray-500 text-sm mb-6">{t('signInToContinue')}</p>
 
           <form onSubmit={handleLogin} className="space-y-5">
 
@@ -101,10 +95,7 @@ function Login() {
             </div>
 
             <div className="text-right">
-              <button
-                type="button"
-                className="text-sm text-secondary hover:underline font-medium"
-              >
+              <button type="button" className="text-sm text-secondary hover:underline font-medium">
                 {t('forgotPassword')}
               </button>
             </div>
@@ -112,7 +103,7 @@ function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-primary hover:bg-secondary text-white font-bold py-3 rounded-xl transition duration-300 text-lg shadow-lg disabled:opacity-70"
+              className="w-full bg-primary hover:bg-secondary text-white font-bold py-3 rounded-xl transition duration-200 text-lg shadow-lg disabled:opacity-70"
             >
               {loading ? t('signingIn') : `${t('signIn')} →`}
             </button>
@@ -127,10 +118,7 @@ function Login() {
 
           <p className="text-center text-gray-600 text-sm">
             {t('noAccount')}{' '}
-            <Link
-              to="/register"
-              className="text-secondary font-bold hover:underline"
-            >
+            <Link to="/register" className="text-secondary font-bold hover:underline">
               {t('createAccount')}
             </Link>
           </p>

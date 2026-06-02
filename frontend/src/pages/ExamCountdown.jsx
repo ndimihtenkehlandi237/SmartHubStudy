@@ -1,250 +1,385 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 import {
   FaArrowLeft, FaPlus, FaTrash,
-  FaSpinner, FaGraduationCap, FaBell
+  FaSpinner, FaGraduationCap, FaFire, FaBell
 } from 'react-icons/fa';
 import { getToken } from '../services/authService';
 import API from '../services/api';
 
 function ExamCountdown() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [exams, setExams] = useState([]);
-  const [subjects, setSubjects] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [now, setNow] = useState(new Date());
   const [formData, setFormData] = useState({
-    examName: '',
-    subjectId: '',
-    examDate: '',
-    notifyEnabled: true,
+    name: '', date: '', subject: '', notes: '',
   });
 
   useEffect(() => {
-    fetchData();
-    const timer = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(timer);
+    const ticker = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(ticker);
   }, []);
 
-  const fetchData = async () => {
+  const fetchExams = useCallback(async () => {
     try {
-      const headers = { Authorization: `Bearer ${getToken()}` };
-      const [examsRes, subjectsRes] = await Promise.all([
-        API.get('/api/exams', { headers }),
-        API.get('/api/notes/subjects', { headers }),
-      ]);
-      setExams(examsRes.data.exams);
-      setSubjects(subjectsRes.data.subjects);
+      const res = await API.get('/api/exams', {
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      setExams(res.data.exams || []);
     } catch (error) {
-      toast.error('Failed to load exams');
+      console.error('Fetch exams error:', error.message);
     }
-    setLoading(false);
-  };
+  }, []);
 
-  const getTimeLeft = (examDate) => {
-    const diff = new Date(examDate) - now;
-    if (diff <= 0) return { days: 0, hours: 0, minutes: 0, seconds: 0, expired: true };
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-    return { days, hours, minutes, seconds, expired: false };
-  };
+  useEffect(() => {
+    fetchExams();
+  }, [fetchExams]);
 
-  const getUrgencyColor = (days) => {
-    if (days <= 3) return 'from-red-500 to-red-700';
-    if (days <= 7) return 'from-orange-500 to-orange-700';
-    if (days <= 14) return 'from-yellow-500 to-yellow-700';
-    return 'from-primary to-secondary';
-  };
-
-  const handleSubmit = async (e) => {
+  const handleSubmit = async e => {
     e.preventDefault();
-    if (!formData.examName || !formData.examDate) { toast.error('Please fill in all required fields'); return; }
-    if (new Date(formData.examDate) <= new Date()) { toast.error('Exam date must be in the future'); return; }
+    if (!formData.name || !formData.date) {
+      toast.error('Please enter exam name and date');
+      return;
+    }
+    if (new Date(formData.date) <= new Date()) {
+      toast.error('Please select a future date');
+      return;
+    }
     setSaving(true);
     try {
-      const res = await API.post('/api/exams', formData, { headers: { Authorization: `Bearer ${getToken()}` } });
-      setExams([...exams, res.data.exam]);
-      setFormData({ examName: '', subjectId: '', examDate: '', notifyEnabled: true });
+      const res = await API.post('/api/exams', formData, {
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      setExams(prev => [...prev, res.data.exam]);
+      setFormData({ name: '', date: '', subject: '', notes: '' });
       setShowForm(false);
-      toast.success('Exam countdown added! 🎓');
+      toast.success('Exam added! 🎓');
     } catch (error) {
-      toast.error('Failed to add exam');
+      toast.error(error.response?.data?.message || 'Failed to add exam');
     }
     setSaving(false);
   };
 
-  const deleteExam = async (id) => {
-    if (!window.confirm('Delete this exam countdown?')) return;
+  const deleteExam = async id => {
+    if (!window.confirm('Delete this exam?')) return;
     try {
-      await API.delete(`/api/exams/${id}`, { headers: { Authorization: `Bearer ${getToken()}` } });
-      setExams(exams.filter(e => e._id !== id));
+      await API.delete(`/api/exams/${id}`, {
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      setExams(prev => prev.filter(e => e._id !== id));
       toast.success('Exam deleted');
     } catch (error) {
       toast.error('Failed to delete exam');
     }
   };
 
-  if (loading) {
-    return <div className="min-h-screen bg-gray-100 flex items-center justify-center"><FaSpinner className="animate-spin text-primary text-4xl" /></div>;
-  }
+  const getCountdown = examDate => {
+    const diff = new Date(examDate) - now;
+    if (diff <= 0) return null;
+    return {
+      days: Math.floor(diff / (1000 * 60 * 60 * 24)),
+      hours: Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+      minutes: Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)),
+      seconds: Math.floor((diff % (1000 * 60)) / 1000),
+      total: diff,
+    };
+  };
+
+  const getUrgencyBorder = cd => {
+    if (!cd) return 'bg-gray-100 border-gray-300';
+    if (cd.days === 0) return 'bg-red-50 border-red-400';
+    if (cd.days <= 3) return 'bg-orange-50 border-orange-400';
+    if (cd.days <= 7) return 'bg-yellow-50 border-yellow-400';
+    return 'bg-green-50 border-green-300';
+  };
+
+  const getUrgencyHeader = cd => {
+    if (!cd) return 'bg-gray-500';
+    if (cd.days === 0) return 'bg-gradient-to-r from-red-500 to-red-600';
+    if (cd.days <= 3) return 'bg-gradient-to-r from-orange-500 to-red-500';
+    if (cd.days <= 7) return 'bg-gradient-to-r from-yellow-500 to-orange-500';
+    return 'bg-gradient-to-r from-green-500 to-emerald-600';
+  };
+
+  const getUrgencyColor = cd => {
+    if (!cd) return 'text-gray-500';
+    if (cd.days === 0) return 'text-red-500';
+    if (cd.days <= 3) return 'text-orange-500';
+    if (cd.days <= 7) return 'text-yellow-600';
+    return 'text-green-600';
+  };
+
+  const getUrgencyMsg = cd => {
+    if (!cd) return t('examPassedLabel');
+    if (cd.days === 0) return t('todayLabel');
+    if (cd.days === 1) return t('tomorrowLabel');
+    if (cd.days <= 3) return 'Very soon! Study hard!';
+    if (cd.days <= 7) return 'One week left. Keep going!';
+    return 'You have time. Stay consistent!';
+  };
+
+  const upcoming = exams.filter(e => new Date(e.date) > now)
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+  const passed = exams.filter(e => new Date(e.date) <= now);
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <div className="bg-white shadow-sm px-8 py-4 flex items-center justify-between">
+
+      {/* Header */}
+      <div className="bg-white shadow-sm px-4 md:px-8 py-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <button onClick={() => navigate('/dashboard')} className="text-gray-500 hover:text-primary transition">
             <FaArrowLeft className="text-xl" />
           </button>
           <div>
-            <h1 className="text-xl font-bold text-gray-800">Exam Countdown</h1>
-            <p className="text-gray-500 text-sm">Track your upcoming examinations</p>
+            <h1 className="text-xl font-bold text-gray-800">{t('examCountdownTitle')}</h1>
+            <p className="text-gray-500 text-sm">
+              {upcoming.length} upcoming
+            </p>
           </div>
         </div>
-        <button onClick={() => setShowForm(!showForm)} className="bg-primary text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-secondary transition flex items-center gap-2">
-          <FaPlus /> Add Exam
+        <button
+          onClick={() => setShowForm(!showForm)}
+          className="bg-primary text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-secondary transition flex items-center gap-2"
+        >
+          <FaPlus className="text-xs" /> {t('addExamBtn')}
         </button>
       </div>
 
-      <div className="max-w-4xl mx-auto p-8 space-y-6">
+      <div className="max-w-2xl mx-auto p-4 md:p-8 space-y-4">
+
+        {/* Add Exam Form */}
         {showForm && (
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-            <h3 className="font-bold text-gray-800 text-lg mb-4">Add New Exam</h3>
+            <h3 className="font-bold text-gray-800 text-lg mb-4">
+              📝 {t('addExamBtn')}
+            </h3>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Exam Name *</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  {t('examNameLabel')} *
+                </label>
                 <input
                   type="text"
-                  value={formData.examName}
-                  onChange={(e) => setFormData({ ...formData, examName: e.target.value })}
-                  placeholder="e.g. Data Structures Final Exam"
+                  value={formData.name}
+                  onChange={e => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="e.g. Software Engineering Final Exam"
                   required
                   className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-secondary text-gray-700 transition"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Subject (Optional)</label>
-                  <select
-                    value={formData.subjectId}
-                    onChange={(e) => setFormData({ ...formData, subjectId: e.target.value })}
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-secondary text-gray-700 transition"
-                  >
-                    <option value="">Select subject</option>
-                    {subjects.map(sub => <option key={sub._id} value={sub._id}>{sub.name}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Exam Date & Time *</label>
-                  <input
-                    type="datetime-local"
-                    value={formData.examDate}
-                    onChange={(e) => setFormData({ ...formData, examDate: e.target.value })}
-                    required
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-secondary text-gray-700 transition"
-                  />
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  {t('examDateLabel')} *
+                </label>
                 <input
-                  type="checkbox"
-                  id="notify"
-                  checked={formData.notifyEnabled}
-                  onChange={(e) => setFormData({ ...formData, notifyEnabled: e.target.checked })}
-                  className="w-4 h-4 accent-primary"
+                  type="datetime-local"
+                  value={formData.date}
+                  onChange={e => setFormData({ ...formData, date: e.target.value })}
+                  required
+                  min={new Date().toISOString().slice(0, 16)}
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-secondary text-gray-700 transition"
                 />
-                <label htmlFor="notify" className="text-sm text-gray-700 font-medium">Enable study reminders for this exam</label>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Subject</label>
+                <input
+                  type="text"
+                  value={formData.subject}
+                  onChange={e => setFormData({ ...formData, subject: e.target.value })}
+                  placeholder="e.g. Computer Science"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-secondary text-gray-700 transition"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Study Notes</label>
+                <textarea
+                  value={formData.notes}
+                  onChange={e => setFormData({ ...formData, notes: e.target.value })}
+                  placeholder="Topics to focus on..."
+                  rows={3}
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-secondary text-gray-700 transition resize-none"
+                />
               </div>
               <div className="flex gap-3">
-                <button type="button" onClick={() => setShowForm(false)} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3 rounded-xl transition">Cancel</button>
-                <button type="submit" disabled={saving} className="flex-1 bg-primary hover:bg-secondary text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowForm(false)}
+                  className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3 rounded-xl transition"
+                >
+                  {t('cancel')}
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="flex-1 bg-primary hover:bg-secondary text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-2"
+                >
                   {saving ? <FaSpinner className="animate-spin" /> : <FaPlus />}
-                  {saving ? 'Adding...' : 'Add Exam'}
+                  {saving ? 'Adding...' : t('addExamBtn')}
                 </button>
               </div>
             </form>
           </div>
         )}
 
-        {exams.length === 0 ? (
-          <div className="bg-white rounded-2xl p-12 shadow-sm text-center">
+        {/* Empty State */}
+        {exams.length === 0 && (
+          <div className="bg-white rounded-2xl p-12 shadow-sm text-center border border-gray-100">
             <FaGraduationCap className="text-6xl text-gray-200 mx-auto mb-4" />
-            <h3 className="text-xl font-bold text-gray-600 mb-2">No Exams Added Yet</h3>
-            <p className="text-gray-400 mb-6">Add your upcoming exams to track countdown timers</p>
-            <button onClick={() => setShowForm(true)} className="bg-primary text-white px-6 py-3 rounded-xl font-medium hover:bg-secondary transition">
-              + Add Your First Exam
+            <h3 className="text-xl font-bold text-gray-600 mb-2">{t('noExamsYet')}</h3>
+            <p className="text-gray-400 mb-6">{t('addFirstExam')}</p>
+            <button
+              onClick={() => setShowForm(true)}
+              className="bg-primary text-white px-6 py-3 rounded-xl font-medium hover:bg-secondary transition"
+            >
+              {t('addExamBtn')}
             </button>
           </div>
-        ) : (
+        )}
+
+        {/* Upcoming Exams */}
+        {upcoming.length > 0 && (
           <div className="space-y-4">
-            {exams.map(exam => {
-              const timeLeft = getTimeLeft(exam.examDate);
+            <h2 className="font-bold text-gray-700 text-sm uppercase tracking-wide px-1">
+              📅 Upcoming ({upcoming.length})
+            </h2>
+            {upcoming.map(exam => {
+              const cd = getCountdown(exam.date);
               return (
-                <div key={exam._id} className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100">
-                  <div className={`bg-gradient-to-r ${getUrgencyColor(timeLeft.days)} p-5 text-white`}>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="text-xl font-bold">{exam.examName}</h3>
-                        <p className="text-white text-sm mt-1 flex items-center gap-2">
-                          <FaGraduationCap />
-                          {exam.subjectId?.name || 'General Exam'} • {new Date(exam.examDate).toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                <div
+                  key={exam._id}
+                  className={`rounded-2xl border-2 overflow-hidden shadow-sm ${getUrgencyBorder(cd)}`}
+                >
+                  {/* Header */}
+                  <div className={`${getUrgencyHeader(cd)} p-4 text-white`}>
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-bold text-lg truncate">{exam.name}</h3>
+                        {exam.subject && (
+                          <p className="text-white opacity-80 text-sm">📚 {exam.subject}</p>
+                        )}
+                        <p className="text-white opacity-70 text-xs mt-1">
+                          {new Date(exam.date).toLocaleDateString('en-GB', {
+                            weekday: 'long', year: 'numeric', month: 'long',
+                            day: 'numeric', hour: '2-digit', minute: '2-digit',
+                          })}
                         </p>
                       </div>
-                      <button onClick={() => deleteExam(exam._id)} className="text-white opacity-70 hover:opacity-100 transition p-2">
-                        <FaTrash />
+                      <button
+                        onClick={() => deleteExam(exam._id)}
+                        className="text-white opacity-70 hover:opacity-100 ml-2 flex-shrink-0 p-1"
+                      >
+                        <FaTrash className="text-sm" />
                       </button>
                     </div>
                   </div>
 
-                  <div className="p-5">
-                    {timeLeft.expired ? (
-                      <div className="text-center py-4">
-                        <p className="text-gray-500 font-semibold">This exam has passed</p>
-                      </div>
-                    ) : (
+                  {/* Countdown */}
+                  <div className="p-4">
+                    {cd && (
                       <>
-                        <div className="grid grid-cols-4 gap-3 mb-4">
+                        <p className="text-center text-xs font-semibold text-gray-500 mb-3 uppercase tracking-wide">
+                          {getUrgencyMsg(cd)}
+                        </p>
+                        <div className="grid grid-cols-4 gap-2 mb-4">
                           {[
-                            { value: timeLeft.days, label: 'Days' },
-                            { value: timeLeft.hours, label: 'Hours' },
-                            { value: timeLeft.minutes, label: 'Minutes' },
-                            { value: timeLeft.seconds, label: 'Seconds' },
-                          ].map((item) => (
-                            <div key={item.label} className="bg-gray-50 rounded-xl p-3 text-center border border-gray-100">
-                              <p className="text-3xl font-bold text-primary">{String(item.value).padStart(2, '0')}</p>
-                              <p className="text-xs text-gray-500 mt-1 font-medium">{item.label}</p>
+                            { value: cd.days, label: t('days') },
+                            { value: cd.hours, label: 'Hours' },
+                            { value: cd.minutes, label: 'Mins' },
+                            { value: cd.seconds, label: 'Secs' },
+                          ].map((unit, i) => (
+                            <div key={i} className="bg-white rounded-xl p-3 text-center shadow-sm border border-gray-100">
+                              <p className={`text-2xl md:text-3xl font-black ${getUrgencyColor(cd)}`}>
+                                {String(unit.value).padStart(2, '0')}
+                              </p>
+                              <p className="text-gray-400 text-xs font-medium mt-0.5">
+                                {unit.label}
+                              </p>
                             </div>
                           ))}
                         </div>
-                        <div className={`text-center text-sm font-semibold py-2 px-4 rounded-xl ${
-                          timeLeft.days <= 3 ? 'bg-red-50 text-red-600' :
-                          timeLeft.days <= 7 ? 'bg-orange-50 text-orange-600' :
-                          timeLeft.days <= 14 ? 'bg-yellow-50 text-yellow-600' :
-                          'bg-blue-50 text-blue-600'
-                        }`}>
-                          {timeLeft.days <= 3 ? '🚨 Exam is very close! Study intensively now!' :
-                           timeLeft.days <= 7 ? '⚠️ One week left! Increase your study pace!' :
-                           timeLeft.days <= 14 ? '📚 Two weeks remaining. Stay consistent!' :
-                           '✅ Good amount of time. Study steadily every day!'}
-                        </div>
-                        {exam.notifyEnabled && (
-                          <div className="flex items-center gap-2 mt-3 text-xs text-gray-400">
-                            <FaBell className="text-primary" />
-                            Study reminders are enabled for this exam
-                          </div>
-                        )}
+
+                        {/* Progress Bar */}
+                        {(() => {
+                          const created = new Date(exam.createdAt || Date.now() - 86400000);
+                          const total = new Date(exam.date) - created;
+                          const remaining = new Date(exam.date) - now;
+                          const pct = Math.max(0, Math.min(100, ((total - remaining) / total) * 100));
+                          return (
+                            <div className="mb-3">
+                              <div className="flex justify-between text-xs text-gray-400 mb-1">
+                                <span>Added</span>
+                                <span>{Math.round(pct)}% of time passed</span>
+                                <span>Exam Day</span>
+                              </div>
+                              <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                                <div
+                                  className={`h-full rounded-full transition-all ${getUrgencyColor(cd).replace('text-', 'bg-')}`}
+                                  style={{ width: `${pct}%` }}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })()}
                       </>
                     )}
+
+                    {exam.notes && (
+                      <div className="bg-white rounded-xl p-3 border border-gray-100 mt-2">
+                        <p className="text-xs font-semibold text-gray-500 mb-1 flex items-center gap-1">
+                          <FaBell className="text-primary" /> Study Notes
+                        </p>
+                        <p className="text-gray-600 text-sm">{exam.notes}</p>
+                      </div>
+                    )}
+
+                    <button
+                      onClick={() => navigate('/notes')}
+                      className="w-full mt-3 bg-primary text-white font-bold py-2.5 rounded-xl hover:bg-secondary transition text-sm flex items-center justify-center gap-2"
+                    >
+                      <FaFire /> Study Now
+                    </button>
                   </div>
                 </div>
               );
             })}
           </div>
         )}
+
+        {/* Passed Exams */}
+        {passed.length > 0 && (
+          <div className="space-y-3">
+            <h2 className="font-bold text-gray-400 text-sm uppercase tracking-wide px-1">
+              ✅ {t('examPassedLabel')} ({passed.length})
+            </h2>
+            {passed.map(exam => (
+              <div key={exam._id} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-200 opacity-60">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="bg-gray-400 w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <FaGraduationCap className="text-white" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-bold text-gray-600 truncate">{exam.name}</p>
+                      <p className="text-xs text-gray-400">
+                        {new Date(exam.date).toLocaleDateString()} — {t('examPassedLabel')}
+                      </p>
+                    </div>
+                  </div>
+                  <button onClick={() => deleteExam(exam._id)} className="text-gray-300 hover:text-red-400 transition ml-2 flex-shrink-0">
+                    <FaTrash className="text-sm" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
       </div>
     </div>
   );

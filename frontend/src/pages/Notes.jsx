@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 import {
   FaBookOpen, FaUpload, FaTrash,
   FaFilePdf, FaFileWord, FaFileAlt, FaImage,
@@ -11,37 +12,41 @@ import API from '../services/api';
 
 function Notes() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [notes, setNotes] = useState([]);
   const [subjects, setSubjects] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [activeSubject, setActiveSubject] = useState('all');
   const [search, setSearch] = useState('');
   const [selectedNote, setSelectedNote] = useState(null);
   const [showDetail, setShowDetail] = useState(false);
 
-  useEffect(() => { fetchData(); }, []);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
+      const headers = { Authorization: `Bearer ${getToken()}` };
       const [notesRes, subjectsRes] = await Promise.all([
-        API.get('/api/notes', { headers: { Authorization: `Bearer ${getToken()}` } }),
-        API.get('/api/notes/subjects', { headers: { Authorization: `Bearer ${getToken()}` } })
+        API.get('/api/notes', { headers }),
+        API.get('/api/notes/subjects', { headers }),
       ]);
-      setNotes(notesRes.data.notes);
-      setSubjects(subjectsRes.data.subjects);
+      setNotes(notesRes.data.notes || []);
+      setSubjects(subjectsRes.data.subjects || []);
     } catch (error) {
       toast.error('Failed to load notes');
     }
     setLoading(false);
-  };
+  }, []);
 
-  const deleteNote = async (id) => {
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const deleteNote = async id => {
     if (!window.confirm('Delete this note?')) return;
     try {
       await API.delete(`/api/notes/${id}`, {
-        headers: { Authorization: `Bearer ${getToken()}` }
+        headers: { Authorization: `Bearer ${getToken()}` },
       });
-      setNotes(notes.filter(n => n._id !== id));
+      setNotes(prev => prev.filter(n => n._id !== id));
       if (selectedNote?._id === id) {
         setSelectedNote(null);
         setShowDetail(false);
@@ -52,7 +57,7 @@ function Notes() {
     }
   };
 
-  const getFileIcon = (type) => {
+  const getFileIcon = type => {
     if (type === 'pdf') return <FaFilePdf className="text-red-500" />;
     if (type === 'docx') return <FaFileWord className="text-blue-500" />;
     if (type === 'image') return <FaImage className="text-green-500" />;
@@ -65,12 +70,12 @@ function Notes() {
     return matchSubject && matchSearch;
   });
 
-  const openNote = (note) => {
+  const openNote = note => {
     setSelectedNote(note);
     setShowDetail(true);
   };
 
-  // MOBILE NOTE DETAIL VIEW
+  // ── DETAIL VIEW ──
   if (showDetail && selectedNote) {
     return (
       <div className="min-h-screen bg-gray-100">
@@ -82,7 +87,9 @@ function Notes() {
             <FaChevronLeft className="text-xl" />
           </button>
           <div className="flex-1 min-w-0">
-            <h1 className="text-base font-bold text-gray-800 truncate">{selectedNote.title}</h1>
+            <h1 className="text-base font-bold text-gray-800 truncate">
+              {selectedNote.title}
+            </h1>
             <p className="text-gray-500 text-xs truncate">
               {selectedNote.subjectId?.name}
               {selectedNote.courseLevel && ` — ${selectedNote.courseLevel}`}
@@ -92,19 +99,21 @@ function Notes() {
             onClick={() => navigate(`/quiz?noteId=${selectedNote._id}`)}
             className="bg-primary text-white px-3 py-2 rounded-xl text-xs font-bold hover:bg-secondary transition flex-shrink-0"
           >
-            Quiz →
+            {t('quizButton')}
           </button>
         </div>
 
-        <div className="p-4 space-y-4">
+        <div className="p-4 space-y-4 max-w-2xl mx-auto">
 
           {/* Note Info */}
           <div className="bg-white rounded-2xl p-4 shadow-sm flex items-center gap-3">
             <div className="text-2xl">{getFileIcon(selectedNote.fileType)}</div>
             <div>
-              <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full uppercase">{selectedNote.fileType}</span>
+              <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full uppercase">
+                {selectedNote.fileType}
+              </span>
               <p className="text-xs text-gray-400 mt-0.5">
-                Uploaded {new Date(selectedNote.createdAt).toLocaleDateString()}
+                {t('uploadedOn')} {new Date(selectedNote.createdAt).toLocaleDateString()}
               </p>
             </div>
           </div>
@@ -112,20 +121,23 @@ function Notes() {
           {/* AI Summary */}
           <div className="bg-white rounded-2xl p-4 shadow-sm">
             <h3 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
-              🤖 <span>AI Summary</span>
+              🤖 {t('aiSummary')}
             </h3>
             <p className="text-gray-600 text-sm leading-relaxed">
-              {selectedNote.summary || 'No summary available.'}
+              {selectedNote.summary || t('noSummary')}
             </p>
           </div>
 
           {/* Key Topics */}
           {selectedNote.keyTopics?.length > 0 && (
             <div className="bg-white rounded-2xl p-4 shadow-sm">
-              <h3 className="font-bold text-gray-800 mb-3">📌 Key Topics</h3>
+              <h3 className="font-bold text-gray-800 mb-3">📌 {t('keyTopics')}</h3>
               <div className="flex flex-wrap gap-2">
                 {selectedNote.keyTopics.map((topic, i) => (
-                  <span key={i} className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-medium">
+                  <span
+                    key={i}
+                    className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-medium"
+                  >
                     {topic}
                   </span>
                 ))}
@@ -136,7 +148,7 @@ function Notes() {
           {/* References */}
           {selectedNote.references?.length > 0 && (
             <div className="bg-white rounded-2xl p-4 shadow-sm">
-              <h3 className="font-bold text-gray-800 mb-3">📚 References</h3>
+              <h3 className="font-bold text-gray-800 mb-3">📚 {t('references')}</h3>
               <ul className="space-y-2">
                 {selectedNote.references.map((ref, i) => (
                   <li key={i} className="flex items-start gap-2 text-gray-600 text-sm">
@@ -148,10 +160,10 @@ function Notes() {
             </div>
           )}
 
-          {/* Note Content Preview */}
+          {/* Content Preview */}
           {selectedNote.rawText && (
             <div className="bg-white rounded-2xl p-4 shadow-sm">
-              <h3 className="font-bold text-gray-800 mb-3">📄 Content Preview</h3>
+              <h3 className="font-bold text-gray-800 mb-3">📄 {t('contentPreview')}</h3>
               <div className="bg-gray-50 rounded-xl p-3 max-h-48 overflow-y-auto">
                 <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-wrap">
                   {selectedNote.rawText.slice(0, 800)}
@@ -167,38 +179,43 @@ function Notes() {
               onClick={() => navigate(`/quiz?noteId=${selectedNote._id}`)}
               className="bg-primary text-white font-bold py-3 rounded-xl hover:bg-secondary transition text-sm"
             >
-              Generate Quiz →
+              {t('generateQuiz')} →
             </button>
             <button
               onClick={() => deleteNote(selectedNote._id)}
               className="bg-red-50 text-red-500 font-bold py-3 rounded-xl hover:bg-red-100 transition text-sm border border-red-200"
             >
-              Delete Note
+              {t('deleteNote')}
             </button>
           </div>
-
         </div>
       </div>
     );
   }
 
+  // ── LIST VIEW ──
   return (
     <div className="min-h-screen bg-gray-100">
 
       {/* Header */}
       <div className="bg-white shadow-sm px-4 md:px-8 py-4 flex items-center gap-4">
-        <button onClick={() => navigate('/dashboard')} className="text-gray-500 hover:text-primary transition">
+        <button
+          onClick={() => navigate('/dashboard')}
+          className="text-gray-500 hover:text-primary transition"
+        >
           <FaArrowLeft className="text-xl" />
         </button>
         <div className="flex-1">
-          <h1 className="text-xl font-bold text-gray-800">My Notes</h1>
-          <p className="text-gray-500 text-sm">{notes.length} notes uploaded</p>
+          <h1 className="text-xl font-bold text-gray-800">{t('myNotesTitle')}</h1>
+          <p className="text-gray-500 text-sm">
+            {notes.length} {t('notesCount')}
+          </p>
         </div>
         <button
           onClick={() => navigate('/upload')}
           className="bg-primary text-white px-3 py-2 rounded-xl text-xs font-medium hover:bg-secondary transition flex items-center gap-1"
         >
-          <FaUpload /> Upload
+          <FaUpload className="text-xs" /> {t('uploadNote')}
         </button>
       </div>
 
@@ -209,8 +226,8 @@ function Notes() {
           <input
             type="text"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search notes..."
+            onChange={e => setSearch(e.target.value)}
+            placeholder={t('searchNotes')}
             className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-secondary"
           />
         </div>
@@ -218,21 +235,25 @@ function Notes() {
 
       {/* Subject Filter */}
       <div className="px-4 md:px-8 py-2 bg-white border-b border-gray-100">
-        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+        <div className="flex gap-2 overflow-x-auto pb-1">
           <button
             onClick={() => setActiveSubject('all')}
             className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition flex-shrink-0 ${
-              activeSubject === 'all' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600'
+              activeSubject === 'all'
+                ? 'bg-primary text-white'
+                : 'bg-gray-100 text-gray-600'
             }`}
           >
-            All Notes
+            {t('allNotes')}
           </button>
           {subjects.map(sub => (
             <button
               key={sub._id}
               onClick={() => setActiveSubject(sub._id)}
               className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition flex-shrink-0 ${
-                activeSubject === sub._id ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600'
+                activeSubject === sub._id
+                  ? 'bg-primary text-white'
+                  : 'bg-gray-100 text-gray-600'
               }`}
             >
               {sub.name}
@@ -241,7 +262,7 @@ function Notes() {
         </div>
       </div>
 
-      {/* Notes List */}
+      {/* Notes Grid */}
       <div className="p-4 md:p-8">
         {loading ? (
           <div className="flex items-center justify-center py-16">
@@ -250,12 +271,12 @@ function Notes() {
         ) : filteredNotes.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-gray-400">
             <FaBookOpen className="text-5xl mb-3 opacity-30" />
-            <p className="text-sm text-center mb-4">No notes found.</p>
+            <p className="text-sm text-center mb-4">{t('noNotesFound')}</p>
             <button
               onClick={() => navigate('/upload')}
               className="bg-primary text-white px-6 py-2 rounded-xl text-sm hover:bg-secondary transition"
             >
-              Upload Note
+              {t('uploadNote')}
             </button>
           </div>
         ) : (
@@ -274,17 +295,18 @@ function Notes() {
                     </span>
                   </div>
                   <button
-                    onClick={(e) => { e.stopPropagation(); deleteNote(note._id); }}
+                    onClick={e => { e.stopPropagation(); deleteNote(note._id); }}
                     className="text-gray-300 hover:text-red-500 transition p-1"
                   >
                     <FaTrash className="text-xs" />
                   </button>
                 </div>
 
-                <h3 className="font-bold text-gray-800 text-sm mb-1 line-clamp-2">{note.title}</h3>
-
+                <h3 className="font-bold text-gray-800 text-sm mb-1 line-clamp-2">
+                  {note.title}
+                </h3>
                 <p className="text-xs text-gray-500 mb-2">
-                  {note.subjectId?.name || 'Unknown Subject'}
+                  {note.subjectId?.name || 'Unknown'}
                   {note.courseLevel && ` — ${note.courseLevel}`}
                 </p>
 
@@ -297,12 +319,17 @@ function Notes() {
                 {note.keyTopics?.length > 0 && (
                   <div className="flex flex-wrap gap-1 mb-3">
                     {note.keyTopics.slice(0, 3).map((topic, i) => (
-                      <span key={i} className="bg-blue-50 text-blue-600 text-xs px-2 py-0.5 rounded-full">
+                      <span
+                        key={i}
+                        className="bg-blue-50 text-blue-600 text-xs px-2 py-0.5 rounded-full"
+                      >
                         {topic}
                       </span>
                     ))}
                     {note.keyTopics.length > 3 && (
-                      <span className="text-gray-400 text-xs">+{note.keyTopics.length - 3} more</span>
+                      <span className="text-gray-400 text-xs">
+                        +{note.keyTopics.length - 3}
+                      </span>
                     )}
                   </div>
                 )}
@@ -312,10 +339,10 @@ function Notes() {
                     {new Date(note.createdAt).toLocaleDateString()}
                   </p>
                   <button
-                    onClick={(e) => { e.stopPropagation(); navigate(`/quiz?noteId=${note._id}`); }}
+                    onClick={e => { e.stopPropagation(); navigate(`/quiz?noteId=${note._id}`); }}
                     className="text-xs bg-primary text-white px-3 py-1 rounded-full hover:bg-secondary transition font-medium"
                   >
-                    Quiz →
+                    {t('quizButton')}
                   </button>
                 </div>
               </div>
@@ -323,7 +350,6 @@ function Notes() {
           </div>
         )}
       </div>
-
     </div>
   );
 }

@@ -3,6 +3,55 @@ const Result = require('../models/Result');
 const Note = require('../models/Note');
 const User = require('../models/User');
 
+// ── ANTI-CRAMMING: Rephrase questions to detect surface memorization ──
+// ── ANTI-CRAMMING: Rephrase questions to detect surface memorization ──
+const rephraseQuestion = (question, type) => {
+  const rephrasings = {
+    // Rephrase patterns — same concept different wording
+    'What is': ['Define', 'Explain what is meant by', 'How would you describe'],
+    'Which of the following': ['Select the correct answer:', 'Identify the option that best describes', 'Choose the most accurate statement:'],
+    'How does': ['In what way does', 'Describe how', 'Explain the manner in which'],
+    'Why is': ['What is the reason that', 'Explain why', 'Provide a justification for why'],
+    'What are': ['List and explain', 'Identify', 'Name the key'],
+    'Describe': ['Elaborate on', 'Provide a detailed explanation of', 'Discuss'],
+    'Explain': ['Describe in your own words', 'Provide an account of', 'Detail'],
+  };
+
+  let rephrased = question;
+  for (const [original, alternatives] of Object.entries(rephrasings)) {
+    if (question.startsWith(original)) {
+      const random = alternatives[Math.floor(Math.random() * alternatives.length)];
+      rephrased = question.replace(original, random);
+      break;
+    }
+  }
+  return rephrased;
+};
+
+// ── ANTI-CRAMMING: Generate variant of a question ──
+const generateAntiCrammingVariant = (originalQuestion) => {
+  const prefixes = [
+    'In your own words, ',
+    'Without looking at your notes, ',
+    'Based on your understanding, ',
+    'Thinking critically, ',
+    'Applying what you have learned, ',
+  ];
+
+  const suffixes = [
+    ' Explain your reasoning.',
+    ' Give a specific example.',
+    ' Why is this important?',
+    ' How does this apply in practice?',
+    ' What would happen if this was different?',
+  ];
+
+  const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
+  const suffix = suffixes[Math.floor(Math.random() * suffixes.length)];
+
+  return `${prefix}${originalQuestion.toLowerCase()}${suffix}`;
+};
+
 // ── GENERATE QUESTIONS ──
 const generateQuestions = async (text, noteTitle, isPro) => {
 
@@ -280,6 +329,31 @@ const generatePlaceholders = (noteTitle, count) => {
     });
   }
 
+  // ── ANTI-CRAMMING POST-PROCESSING ──
+// For every 5 questions, replace 1 with a rephrased variant
+// This detects if students memorized answers vs truly understanding
+const processAntiCramming = (questions) => {
+  return questions.map((q, i) => {
+    // Every 4th question gets rephrased to test real understanding
+    if (i % 4 === 3 && q.type !== 'mcq') {
+      return {
+        ...q,
+        question: generateAntiCrammingVariant(q.question),
+        isAntiCramming: true,
+      };
+    }
+    // Every 6th MCQ question gets the phrasing changed
+    if (i % 6 === 5 && q.type === 'mcq') {
+      return {
+        ...q,
+        question: rephraseQuestion(q.question, q.type),
+        isAntiCramming: true,
+      };
+    }
+    return q;
+  });
+};
+
   return all;
 };
 
@@ -296,14 +370,18 @@ const generateQuiz = async (req, res) => {
       return res.status(404).json({ message: 'Note not found' });
     }
 
-    // Check user plan
     const user = await User.findById(req.user.id);
     const isPro = user?.plan === 'pro';
 
-    // Delete existing quiz for fresh generation
     await Quiz.findOneAndDelete({ noteId, userId: req.user.id });
 
-    const questions = await generateQuestions(note.rawText, note.title, isPro);
+    let questions = await generateQuestions(note.rawText, note.title, isPro);
+
+    // Apply anti-cramming detection for Pro users
+    if (isPro) {
+      questions = processAntiCramming(questions);
+    }
+
     const totalMarks = questions.reduce((sum, q) => sum + (q.marks || 1), 0);
 
     const quiz = await Quiz.create({
@@ -313,7 +391,7 @@ const generateQuiz = async (req, res) => {
       totalMarks,
     });
 
-    console.log(`Quiz created: ${questions.length} questions, isPro: ${isPro}`);
+    console.log(`Quiz: ${questions.length} questions, isPro: ${isPro}, antiCramming: ${isPro}`);
 
     res.status(201).json({
       message: `Quiz generated with ${questions.length} questions!`,

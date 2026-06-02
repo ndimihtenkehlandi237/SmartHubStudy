@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import { QRCodeSVG } from 'qrcode.react';
 import {
   FaArrowLeft, FaUser, FaEnvelope, FaUniversity,
   FaTrophy, FaFire, FaStar, FaSignOutAlt,
@@ -695,17 +696,25 @@ function Profile() {
                 </button>
               </div>
               {showQR && (
-                <div className="mt-4 text-center">
-                  <div className="bg-gray-50 rounded-xl p-4 inline-block">
-                    <div className="w-32 h-32 bg-gray-200 rounded-xl flex items-center justify-center mx-auto">
-                      <FaQrcode className="text-5xl text-gray-400" />
-                    </div>
-                    <p className="text-xs text-gray-400 mt-2">
-                      @{currentUser?.username}
-                    </p>
-                  </div>
-                </div>
-              )}
+  <div className="mt-4 text-center">
+    <div className="bg-white rounded-xl p-4 inline-block shadow-sm border border-gray-100">
+      <QRCodeSVG
+        value={`${window.location.origin}/profile/share/${currentUser?.shareLink}`}
+        size={140}
+        bgColor="#ffffff"
+        fgColor="#1e40af"
+        level="H"
+        includeMargin={true}
+      />
+      <p className="text-xs text-gray-500 font-medium mt-2">
+        @{currentUser?.username || currentUser?.fullName}
+      </p>
+      <p className="text-xs text-gray-400">
+        Scan to view profile
+      </p>
+    </div>
+  </div>
+)}
             </div>
 
             {/* Search Users */}
