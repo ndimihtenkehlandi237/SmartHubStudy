@@ -12,16 +12,8 @@ const {
   createSubject,
 } = require('../controllers/noteController');
 
-// Multer storage config
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'uploads/');
-  },
-  filename: function (req, file, cb) {
-    const uniqueName = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, uniqueName + path.extname(file.originalname));
-  },
-});
+// Use memory storage instead of disk — works on Render
+const storage = multer.memoryStorage();
 
 const fileFilter = function (req, file, cb) {
   const allowed = [

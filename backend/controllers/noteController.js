@@ -1,8 +1,6 @@
 const Note = require('../models/Note');
 const Subject = require('../models/Subject');
 const User = require('../models/User');
-const fs = require('fs');
-const path = require('path');
 
 // ── AI SUMMARY GENERATOR ──
 const generateSummary = async (text, title) => {
@@ -49,7 +47,9 @@ const generateSummary = async (text, title) => {
   ) {
     try {
       const Anthropic = require('@anthropic-ai/sdk');
-      const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+      const anthropic = new Anthropic({
+        apiKey: process.env.ANTHROPIC_API_KEY,
+      });
       const response = await anthropic.messages.create({
         model: 'claude-haiku-20240307',
         max_tokens: 600,
@@ -59,7 +59,8 @@ const generateSummary = async (text, title) => {
             content:
               'Read these lecture notes and return ONLY valid JSON: ' +
               '{"summary": "3-4 sentence summary", "keyTopics": ["topic1","topic2","topic3","topic4","topic5"], "references": []} ' +
-              'Notes: ' + cleanText,
+              'Notes: ' +
+              cleanText,
           },
         ],
       });
@@ -82,10 +83,9 @@ const generateSummary = async (text, title) => {
     .filter(s => s.length > 30);
 
   const summary =
-    sentences.slice(0, 3).join('. ') + '.' ||
-    `This note covers important content about ${title}. Review the material carefully to understand the key concepts and their applications.`;
+    sentences.slice(0, 3).join('. ').trim() + '.' ||
+    `This note covers important content about ${title}. Review the material carefully to understand the key concepts and their applications in your course.`;
 
-  // Extract key topics from most frequent meaningful words
   const words = text
     .toLowerCase()
     .replace(/[^a-z\s]/g, ' ')
@@ -97,10 +97,13 @@ const generateSummary = async (text, title) => {
     'had','her','was','one','our','out','day','get','has','him',
     'his','how','its','may','new','now','old','see','two','way',
     'who','did','with','that','this','have','from','they','will',
-    'been','each','from','which','their','there','when','more',
-    'very','just','also','into','than','then','them','some','such',
-    'only','over','most','other','about','would','these','those',
-    'could','should','after','before','being','every','where',
+    'been','each','which','their','there','when','more','very',
+    'just','also','into','than','then','them','some','such','only',
+    'over','most','other','about','would','these','those','could',
+    'should','after','before','being','every','where','what','your',
+    'were','said','here','does','made','make','like','time','know',
+    'take','come','good','much','both','well','long','down','even',
+    'back','still','such','life','give','many','most','tell','keep',
   ]);
 
   const freq = {};
@@ -116,72 +119,59 @@ const generateSummary = async (text, title) => {
     .map(([word]) => word.charAt(0).toUpperCase() + word.slice(1));
 
   return {
-    summary,
-    keyTopics: keyTopics.length >= 3 ? keyTopics : [
-      'Core Concepts',
-      'Theoretical Framework',
-      'Key Definitions',
-      'Practical Applications',
-      'Summary Points',
-    ],
+    summary:
+      summary ||
+      `This note titled "${title}" covers key academic content. Study the material thoroughly and use the quiz feature to test your understanding.`,
+    keyTopics:
+      keyTopics.length >= 3
+        ? keyTopics
+        : [
+            'Core Concepts',
+            'Theoretical Framework',
+            'Key Definitions',
+            'Practical Applications',
+            'Summary Points',
+          ],
     references: [],
   };
 };
 
-// ── EXTRACT TEXT FROM FILE ──
-const extractText = async (filePath, fileType, mimetype) => {
+// ── EXTRACT TEXT FROM BUFFER (Memory — works on Render) ──
+const extractText = async (buffer, fileType, mimetype) => {
   try {
     if (mimetype === 'application/pdf' || fileType === 'pdf') {
-      const PDFParser = require('pdf2json');
-      return new Promise((resolve, reject) => {
-        const pdfParser = new PDFParser();
-        pdfParser.on('pdfParser_dataError', err => {
-          console.error('PDF parse error:', err);
-          resolve('');
-        });
-        pdfParser.on('pdfParser_dataReady', pdfData => {
-          try {
-            let text = '';
-            pdfData.Pages.forEach(page => {
-              page.Texts.forEach(textObj => {
-                textObj.R.forEach(r => {
-                  text += decodeURIComponent(r.T) + ' ';
-                });
-              });
-              text += '\n';
-            });
-            resolve(text.trim());
-          } catch (e) {
-            resolve('');
-          }
-        });
-        pdfParser.loadPDF(filePath);
-      });
+      try {
+        const pdfParse = require('pdf-parse');
+        const data = await pdfParse(buffer);
+        return data.text || '';
+      } catch (err) {
+        console.error('PDF parse error:', err.message);
+        return '';
+      }
     }
 
     if (
-      mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+      mimetype ===
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
       mimetype === 'application/msword' ||
       fileType === 'docx'
     ) {
-      const mammoth = require('mammoth');
-      const result = await mammoth.extractRawText({ path: filePath });
-      return result.value;
+      try {
+        const mammoth = require('mammoth');
+        const result = await mammoth.extractRawText({ buffer });
+        return result.value || '';
+      } catch (err) {
+        console.error('DOCX parse error:', err.message);
+        return '';
+      }
     }
 
     if (mimetype === 'text/plain' || fileType === 'txt') {
-      return fs.readFileSync(filePath, 'utf8');
+      return buffer.toString('utf8');
     }
 
     if (mimetype.startsWith('image/') || fileType === 'image') {
-      try {
-        const Tesseract = require('tesseract.js');
-        const { data: { text } } = await Tesseract.recognize(filePath, 'eng');
-        return text;
-      } catch (err) {
-        console.error('OCR error:', err.message);
-        return '';
-      }
+      return 'Image note uploaded. AI summary generated from title context.';
     }
 
     return '';
@@ -195,10 +185,12 @@ const extractText = async (filePath, fileType, mimetype) => {
 const getFileType = (mimetype, originalname) => {
   if (mimetype === 'application/pdf') return 'pdf';
   if (
-    mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+    mimetype ===
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
     mimetype === 'application/msword' ||
     (originalname && originalname.endsWith('.docx'))
-  ) return 'docx';
+  )
+    return 'docx';
   if (mimetype === 'text/plain') return 'txt';
   if (mimetype.startsWith('image/')) return 'image';
   return 'txt';
@@ -215,7 +207,8 @@ const checkUploadLimit = async (userId, isPro) => {
   if (recentCount >= 5) {
     return {
       allowed: false,
-      message: 'Free plan limit: 5 uploads per 6 hours. Upgrade to Pro for unlimited uploads.',
+      message:
+        'Free plan limit: 5 uploads per 6 hours. Upgrade to Pro for unlimited uploads.',
       code: 'FREE_LIMIT_REACHED',
     };
   }
@@ -223,10 +216,8 @@ const checkUploadLimit = async (userId, isPro) => {
 };
 
 // ══════════════════════════════════════════════════
-// CONTROLLERS
+// UPLOAD NOTE — Uses buffer, no disk needed
 // ══════════════════════════════════════════════════
-
-// Upload note
 const uploadNote = async (req, res) => {
   try {
     if (!req.file) {
@@ -242,23 +233,17 @@ const uploadNote = async (req, res) => {
       return res.status(400).json({ message: 'Subject is required' });
     }
 
-    // Check user plan
     const user = await User.findById(req.user.id);
     const isPro = user?.plan === 'pro';
 
     const limitCheck = await checkUploadLimit(req.user.id, isPro);
     if (!limitCheck.allowed) {
-      // Clean up uploaded file
-      if (req.file.path && fs.existsSync(req.file.path)) {
-        fs.unlinkSync(req.file.path);
-      }
       return res.status(429).json({
         message: limitCheck.message,
         code: limitCheck.code,
       });
     }
 
-    // Verify subject belongs to user
     const subject = await Subject.findOne({
       _id: subjectId,
       userId: req.user.id,
@@ -270,14 +255,18 @@ const uploadNote = async (req, res) => {
     const fileType = getFileType(req.file.mimetype, req.file.originalname);
     console.log(`Processing ${fileType} file: ${req.file.originalname}`);
 
-    // Extract text
-    const rawText = await extractText(req.file.path, fileType, req.file.mimetype);
+    // Extract text from buffer — no file path needed
+    const rawText = await extractText(
+      req.file.buffer,
+      fileType,
+      req.file.mimetype
+    );
     console.log(`Extracted ${rawText.length} characters`);
 
     // Generate AI summary
     const aiResult = await generateSummary(rawText || title, title);
 
-    // Save note
+    // Save note to database
     const note = await Note.create({
       userId: req.user.id,
       subjectId,
@@ -294,12 +283,7 @@ const uploadNote = async (req, res) => {
     // Update subject note count
     await Subject.findByIdAndUpdate(subjectId, { $inc: { noteCount: 1 } });
 
-    // Clean up uploaded file
-    if (req.file.path && fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path);
-    }
-
-    console.log(`Note created: ${note._id}`);
+    console.log(`Note created successfully: ${note._id}`);
 
     return res.status(201).json({
       message: 'Note uploaded and processed successfully!',
@@ -310,14 +294,15 @@ const uploadNote = async (req, res) => {
     });
   } catch (error) {
     console.error('Upload note error:', error.message);
-    if (req.file?.path && fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path);
-    }
-    return res.status(500).json({ message: error.message || 'Failed to upload note' });
+    return res.status(500).json({
+      message: error.message || 'Failed to upload note',
+    });
   }
 };
 
-// Get all notes for user
+// ══════════════════════════════════════════════════
+// GET ALL NOTES
+// ══════════════════════════════════════════════════
 const getNotes = async (req, res) => {
   try {
     const notes = await Note.find({ userId: req.user.id })
@@ -331,24 +316,31 @@ const getNotes = async (req, res) => {
   }
 };
 
-// Get single note
+// ══════════════════════════════════════════════════
+// GET SINGLE NOTE
+// ══════════════════════════════════════════════════
 const getNote = async (req, res) => {
   try {
     const note = await Note.findOne({
       _id: req.params.id,
       userId: req.user.id,
-    }).populate('subjectId', 'name').lean();
+    })
+      .populate('subjectId', 'name')
+      .lean();
 
     if (!note) {
       return res.status(404).json({ message: 'Note not found' });
     }
     return res.status(200).json({ note });
   } catch (error) {
+    console.error('Get note error:', error.message);
     return res.status(500).json({ message: 'Failed to fetch note' });
   }
 };
 
-// Delete note
+// ══════════════════════════════════════════════════
+// DELETE NOTE
+// ══════════════════════════════════════════════════
 const deleteNote = async (req, res) => {
   try {
     const note = await Note.findOneAndDelete({
@@ -363,11 +355,14 @@ const deleteNote = async (req, res) => {
     });
     return res.status(200).json({ message: 'Note deleted successfully' });
   } catch (error) {
+    console.error('Delete note error:', error.message);
     return res.status(500).json({ message: 'Failed to delete note' });
   }
 };
 
-// Get all subjects for user
+// ══════════════════════════════════════════════════
+// GET ALL SUBJECTS
+// ══════════════════════════════════════════════════
 const getSubjects = async (req, res) => {
   try {
     const subjects = await Subject.find({ userId: req.user.id })
@@ -375,11 +370,14 @@ const getSubjects = async (req, res) => {
       .lean();
     return res.status(200).json({ subjects });
   } catch (error) {
+    console.error('Get subjects error:', error.message);
     return res.status(500).json({ message: 'Failed to fetch subjects' });
   }
 };
 
-// Create subject
+// ══════════════════════════════════════════════════
+// CREATE SUBJECT
+// ══════════════════════════════════════════════════
 const createSubject = async (req, res) => {
   try {
     const { name } = req.body;
@@ -402,10 +400,11 @@ const createSubject = async (req, res) => {
     });
 
     return res.status(201).json({
-      message: 'Subject created!',
+      message: 'Subject created successfully!',
       subject,
     });
   } catch (error) {
+    console.error('Create subject error:', error.message);
     return res.status(500).json({ message: 'Failed to create subject' });
   }
 };
