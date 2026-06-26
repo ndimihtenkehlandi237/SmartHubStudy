@@ -445,32 +445,54 @@ function Payment() {
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(1);
   const [error, setError] = useState(null);
+  const [paymentReference, setPaymentReference] = useState(null);
 
-  const handlePayment = async () => {
-    if (!phone) { toast.error('Please enter your phone number'); return; }
-    if (phone.length < 9) { toast.error('Please enter a valid 9-digit number'); return; }
-    if (!selectedMethod) { toast.error('Please select a payment method'); return; }
+  // When student clicks Pay
+const handlePayment = async () => {
+  try {
     setLoading(true);
     setError(null);
-    try {
-      await API.post(
-        '/api/payment/initiate',
-        { phone, plan: selectedPlan, method: selectedMethod },
-        { headers: { Authorization: `Bearer ${getToken()}` } }
-      );
-      setStep(3);
-    } catch (err) {
-      const message = err.response?.data?.message || 'Payment failed. Please try again.';
-      const code = err.response?.data?.code;
-      if (code === 'INSUFFICIENT_BALANCE') {
-        setError(message);
-      } else {
-        toast.error(message);
-      }
-    }
-    setLoading(false);
-  };
 
+    const res = await API.post(
+      '/api/payment/initiate',
+      {
+        phone: phone,
+        network: selectedMethod, // 'mtn' or 'orange'
+        plan: selectedPlan,      // 'monthly' or 'yearly'
+      },
+      { headers: { Authorization: `Bearer ${getToken()}` } }
+    );
+
+    setPaymentReference(res.data.reference);
+    setStep(3);
+    toast.success('Payment prompt sent to your phone!');
+
+  } catch (err) {
+    setError(err.response?.data?.message || 'Payment failed. Try again.');
+  }
+  setLoading(false);
+};
+
+// When student clicks "I have approved"
+const handleVerify = async () => {
+  try {
+    setLoading(true);
+    const res = await API.get(
+      `/api/payment/verify/${paymentReference}`,
+      { headers: { Authorization: `Bearer ${getToken()}` } }
+    );
+
+    if (res.data.status === 'complete') {
+      toast.success('You are now Pro!');
+      navigate('/dashboard');
+    } else {
+      setError('Payment not yet confirmed. Please approve on your phone first.');
+    }
+  } catch (err) {
+    setError('Could not verify. Try again in a moment.');
+  }
+  setLoading(false);
+};
   return (
     <div className="min-h-screen bg-gray-100">
 
@@ -513,7 +535,7 @@ function Payment() {
           />
         )}
         {step === 3 && (
-          <Step3 phone={phone} selectedMethod={selectedMethod} />
+          <Step3 phone={phone} selectedMethod={selectedMethod} onVerify={handleVerify} loading={loading} error={error} />
         )}
       </div>
     </div>
